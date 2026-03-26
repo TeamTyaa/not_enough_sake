@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../auth/models/app_user.dart';
+import '../../review/models/drink_review.dart';
+import '../../review/models/favorite_item.dart';
+import '../../review/providers/favorite_provider.dart';
+import '../../review/providers/review_provider.dart';
+import '../../review/screens/review_screen.dart';
+import '../../token/providers/token_provider.dart';
+import '../models/recommended_drink.dart';
+import '../providers/recommend_provider.dart';
+
+class RecommendController {
+  final WidgetRef ref;
+  final AppUser user;
+
+  RecommendController(this.ref, this.user);
+
+  // ── 初回ロード ─────────────────────────
+  void initIfNeeded(RecsState recs, List<DrinkReview> reviews) {
+    if (!recs.isLoading && recs.recs == null && recs.error == null) {
+      ref.read(recsProvider((user.uid, user.genres)).notifier).fetchRecs(user.tasteProfile, reviews);
+    }
+  }
+
+  // ── リフレッシュ ───────────────────────
+  Future<void> refresh(List<DrinkReview> reviews) async {
+    await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchRecs(user.tasteProfile, reviews);
+  }
+
+  // ── 通常レビュー ───────────────────────
+  void onReview({
+    required BuildContext context,
+    required RecommendedDrink drink,
+    required dynamic tier,
+    required List<DrinkReview> reviews,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReviewScreen(
+          drink: drink,
+          tierLabel: tier.label,
+          uid: user.uid,
+          onSaved: (r) async {
+            await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
+            await ref.read(tokenProvider(user.uid).notifier).addFree(1);
+
+            // お気に入り追加
+            if (r.justRight) {
+              final favs = ref.read(favoritesProvider(user.uid));
+              if (!favs.any((f) => f.name == drink.name)) {
+                await ref.read(favoritesProvider(user.uid).notifier).setFavorites([
+                  ...favs,
+                  FavoriteItem(
+                    id: r.id,
+                    name: drink.name,
+                    category: drink.category,
+                  )
+                ]);
+              }
+            }
+
+            // 完了フラグ
+            ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(tier.key);
+
+            final updatedReviews = ref.read(reviewsProvider(user.uid));
+
+            final recState = ref.read(recsProvider((user.uid, user.genres)));
+
+            final allDone = recState.done.length >= 3;
+
+            if (allDone) {
+              await ref
+                  .read(recsProvider((user.uid, user.genres)).notifier)
+                  .fetchRecs(user.tasteProfile, updatedReviews);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  // ── 追加レビュー ───────────────────────
+  void onExtraReview({
+    required BuildContext context,
+    required RecommendedDrink drink,
+    required String extraKey,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReviewScreen(
+          drink: drink,
+          tierLabel: '追加ピックアップ',
+          uid: user.uid,
+          onSaved: (r) async {
+            await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
+            await ref.read(tokenProvider(user.uid).notifier).addFree(1);
+
+            ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(extraKey);
+          },
+        ),
+      ),
+    );
+  }
+
+  // ── ピックアップ ───────────────────────
+  Future<void> onPickup(
+    String tier,
+    String useType,
+    List<DrinkReview> reviews,
+    BuildContext context,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    final ok = useType == 'free'
+        ? await ref.read(tokenProvider(user.uid).notifier).spendFree(10)
+        : await ref.read(tokenProvider(user.uid).notifier).spendPaid(1);
+
+    if (!ok) {
+      messenger.showSnackBar(const SnackBar(content: Text('トークンが不足しています')));
+      return;
+    }
+
+    await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchExtraPickup(
+          tier: tier,
+          taste: user.tasteProfile,
+          history: reviews,
+          genres: user.genres,
+        );
+  }
+}

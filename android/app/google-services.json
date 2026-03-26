@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "930866017476",
+    "project_id": "not-enough-sake",
+    "storage_bucket": "not-enough-sake.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:930866017476:android:723370a146e9afc354c591",
+        "android_client_info": {
+          "package_name": "com.example.not_enough_sake"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "930866017476-ofeebkc10ndqusi37vertufkjdbh48nb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgox6qVDkvN6MrZ4MLecGRJ-QRVSLy62c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "930866017476-ofeebkc10ndqusi37vertufkjdbh48nb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "930866017476-m4htc17invn8hi34klfhhn6bopbj5069.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "jp.co.notenoughsake"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:930866017476:android:9df04f6c5b7f193c54c591",
+        "android_client_info": {
+          "package_name": "jp.co.notenoughsake"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "930866017476-nbs09ekfdlu4m65taq1h11sd8lhd28ka.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "jp.co.notenoughsake",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "930866017476-sfi4i60u98d1b4tir3vrnqb4p50p9geq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "jp.co.notenoughsake",
+            "certificate_hash": "7f54c4b41efadc0884d46702b0b7bb899045924e"
+          }
+        },
+        {
+          "client_id": "930866017476-ofeebkc10ndqusi37vertufkjdbh48nb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgox6qVDkvN6MrZ4MLecGRJ-QRVSLy62c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "930866017476-ofeebkc10ndqusi37vertufkjdbh48nb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "930866017476-m4htc17invn8hi34klfhhn6bopbj5069.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "jp.co.notenoughsake"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

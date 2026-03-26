@@ -1,7 +1,7 @@
 name: not_enough_sake
-description: 呑み語りN - AIがあなた好みのお酒を探すアプリ
+description: 酒語りＮ - AIがあなた好みのお酒を探すアプリ
 publish_to: 'none'
-version: 1.0.0+1
+version: 0.0.1
 
 environment:
   sdk: '>=3.2.0 <4.0.0'

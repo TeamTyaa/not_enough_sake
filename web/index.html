@@ -31,6 +31,31 @@
 
   <title>not_enough_sake</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- FireBase -->
+  <script type="module" defer>
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBOgvXQoMwGos3lKfqExDArDNYK2G4rZ7k",
+    authDomain: "not-enough-sake.firebaseapp.com",
+    projectId: "not-enough-sake",
+    storageBucket: "not-enough-sake.firebasestorage.app",
+    messagingSenderId: "930866017476",
+    appId: "1:930866017476:web:769c20db90638ff154c591",
+    measurementId: "G-MWF88N99QM"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

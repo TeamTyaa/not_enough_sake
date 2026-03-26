@@ -1,29 +1,35 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'app/main_screen.dart';
+import 'features/auth/models/blocked_user.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/profile_screen.dart';
+import 'firebase_options.dart';
 import 'services/mock_db.dart';
-import 'providers/app_providers.dart';
 import 'utils/constants.dart';
-import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/main_screen.dart';
-import 'models/models.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await MockDb.init();
-  runApp(const ProviderScope(child: NomigaNApp()));
+  runApp(const ProviderScope(child: NotEnoughSakeApp()));
 }
 
-class NomigaNApp extends StatelessWidget {
-  const NomigaNApp({super.key});
+class NotEnoughSakeApp extends StatelessWidget {
+  const NotEnoughSakeApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: '呑み語りN',
-    debugShowCheckedModeBanner: false,
-    theme: kAppTheme,
-    home: const _RootRouter(),
-  );
+        title: '酒語りＮ',
+        debugShowCheckedModeBanner: false,
+        theme: kAppTheme,
+        home: const _RootRouter(),
+      );
 }
 
 class _RootRouter extends ConsumerWidget {
@@ -95,8 +101,7 @@ class _UnderageScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 13, color: kMuted, height: 1.85),
                 textAlign: TextAlign.center,
               ),
-              Text('$daysLeft 日',
-                style: const TextStyle(fontSize: 18, color: kGold)),
+              Text('$daysLeft 日', style: const TextStyle(fontSize: 18, color: kGold)),
               const SizedBox(height: 16),
               const Text(
                 '成人になると自動的にご利用いただけるようになります。',
@@ -105,7 +110,7 @@ class _UnderageScreen extends StatelessWidget {
               ),
               const SizedBox(height: 48),
               const Text(
-                '呑み語りN · 呑みが足りん',
+                '酒語りＮ',
                 style: TextStyle(fontSize: 10, color: Color(0xFF2a2018), letterSpacing: 2),
               ),
             ]),

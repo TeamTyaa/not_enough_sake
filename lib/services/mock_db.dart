@@ -4,8 +4,18 @@
 // ============================================================
 
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/models.dart';
+
+import '../features/auth/models/app_user.dart';
+import '../features/auth/models/blocked_user.dart';
+import '../features/notice/models/app_notice.dart';
+import '../features/post/models/nomikai_post.dart';
+import '../features/post/models/post_comment.dart';
+import '../features/post/models/report_data.dart';
+import '../features/review/models/drink_review.dart';
+import '../features/review/models/favorite_item.dart';
+import '../features/token/models/token_balance.dart';
 
 class MockDb {
   static SharedPreferences? _prefs;
@@ -31,28 +41,25 @@ class MockDb {
     await prefs.setString('fb_$key', jsonEncode(data));
   }
 
-  static Future<void> _delete(String key) async {
-    await prefs.remove('fb_$key');
-  }
-
   static List<Map<String, dynamic>> _getCollection(String path) {
     final prefix = 'fb_$path/';
-    return prefs.getKeys()
-      .where((k) => k.startsWith(prefix))
-      .map((k) {
-        final s = prefs.getString(k);
-        if (s == null) return null;
-        final id = k.substring(prefix.length);
-        final data = jsonDecode(s) as Map<String, dynamic>;
-        return {'_id': id, ...data};
-      })
-      .whereType<Map<String, dynamic>>()
-      .toList();
+    return prefs
+        .getKeys()
+        .where((k) => k.startsWith(prefix))
+        .map((k) {
+          final s = prefs.getString(k);
+          if (s == null) return null;
+          final id = k.substring(prefix.length);
+          final data = jsonDecode(s) as Map<String, dynamic>;
+          return {'_id': id, ...data};
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList();
   }
 
   static Future<String> _add(String path, Map<String, dynamic> data) async {
     final id = '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}'
-               '${(DateTime.now().microsecond % 1000).toRadixString(36)}';
+        '${(DateTime.now().microsecond % 1000).toRadixString(36)}';
     await _set('$path/$id', data);
     return id;
   }
@@ -63,15 +70,19 @@ class MockDb {
     final notices = [
       {
         '_id': 'n1',
-        'title': '🎉 呑み語りN へようこそ！',
+        'title': '🎉 酒語りＮ へようこそ！',
         'body': 'AIがあなた好みのお酒を探します。まずはレビューを5本貯めると飲み会掲示板が解放されます。',
-        'startAt': '2026-01-01', 'endAt': '2099-12-31', 'createdAt': '2026-01-01',
+        'startAt': '2026-01-01',
+        'endAt': '2099-12-31',
+        'createdAt': '2026-01-01',
       },
       {
         '_id': 'n2',
         'title': '📢 公式URLの承認機能を追加しました',
         'body': 'お酒の公式サイトURLをみんなで確認して承認できるようになりました。3人が承認すると全ユーザーに表示されます。',
-        'startAt': '2026-03-01', 'endAt': '2026-06-30', 'createdAt': '2026-03-01',
+        'startAt': '2026-03-01',
+        'endAt': '2026-06-30',
+        'createdAt': '2026-03-01',
       },
     ];
     for (final n in notices) {
@@ -115,13 +126,11 @@ class MockDb {
   // レビュー
   // ══════════════════════════════════════════════════════════
   static List<DrinkReview> getReviews(String uid) {
-    return _getCollection('users/$uid/reviews')
-      .map((m) {
-        final id = m['_id'] as String;
-        final data = Map<String, dynamic>.from(m)..remove('_id');
-        return DrinkReview.fromMap(id, data);
-      })
-      .toList()
+    return _getCollection('users/$uid/reviews').map((m) {
+      final id = m['_id'] as String;
+      final data = Map<String, dynamic>.from(m)..remove('_id');
+      return DrinkReview.fromMap(id, data);
+    }).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
@@ -135,14 +144,11 @@ class MockDb {
   static List<FavoriteItem> getFavorites(String uid) {
     final m = _get('users/$uid/favorites/list');
     if (m == null) return [];
-    return (m['items'] as List? ?? [])
-      .map((e) => FavoriteItem.fromMap(e as Map<String, dynamic>))
-      .toList();
+    return (m['items'] as List? ?? []).map((e) => FavoriteItem.fromMap(e as Map<String, dynamic>)).toList();
   }
 
   static Future<void> setFavorites(String uid, List<FavoriteItem> favs) async {
-    await _set('users/$uid/favorites/list',
-      {'items': favs.map((e) => e.toMap()).toList()});
+    await _set('users/$uid/favorites/list', {'items': favs.map((e) => e.toMap()).toList()});
   }
 
   // ══════════════════════════════════════════════════════════
@@ -173,13 +179,11 @@ class MockDb {
   // 飲み会投稿
   // ══════════════════════════════════════════════════════════
   static List<NomikaiPost> getPosts() {
-    return _getCollection('nomikaiPosts')
-      .map((m) {
-        final id = m['_id'] as String;
-        final data = Map<String, dynamic>.from(m)..remove('_id');
-        return NomikaiPost.fromMap(id, data);
-      })
-      .toList();
+    return _getCollection('nomikaiPosts').map((m) {
+      final id = m['_id'] as String;
+      final data = Map<String, dynamic>.from(m)..remove('_id');
+      return NomikaiPost.fromMap(id, data);
+    }).toList();
   }
 
   static Future<String> addPost(NomikaiPost post) async {
@@ -194,13 +198,11 @@ class MockDb {
   // コメント
   // ══════════════════════════════════════════════════════════
   static List<PostComment> getComments(String postId) {
-    return _getCollection('nomikaiPosts/$postId/comments')
-      .map((m) {
-        final id = m['_id'] as String;
-        final data = Map<String, dynamic>.from(m)..remove('_id');
-        return PostComment.fromMap(id, data);
-      })
-      .toList()
+    return _getCollection('nomikaiPosts/$postId/comments').map((m) {
+      final id = m['_id'] as String;
+      final data = Map<String, dynamic>.from(m)..remove('_id');
+      return PostComment.fromMap(id, data);
+    }).toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
@@ -212,13 +214,11 @@ class MockDb {
   // お知らせ
   // ══════════════════════════════════════════════════════════
   static List<AppNotice> getNotices() {
-    return _getCollection('notices')
-      .map((m) {
-        final id = m['_id'] as String;
-        final data = Map<String, dynamic>.from(m)..remove('_id');
-        return AppNotice.fromMap(id, data);
-      })
-      .toList();
+    return _getCollection('notices').map((m) {
+      final id = m['_id'] as String;
+      final data = Map<String, dynamic>.from(m)..remove('_id');
+      return AppNotice.fromMap(id, data);
+    }).toList();
   }
 
   // ══════════════════════════════════════════════════════════
@@ -235,8 +235,7 @@ class MockDb {
     return _get('drinks/${Uri.encodeComponent(name)}');
   }
 
-  static Future<void> updateDrinkApproval(
-      String name, String uid, String url) async {
+  static Future<void> updateDrinkApproval(String name, String uid, String url) async {
     final key = 'drinks/${Uri.encodeComponent(name)}';
     final prev = _get(key) ?? <String, dynamic>{};
     final approvals = List<String>.from(prev['approvals'] ?? []);
@@ -259,10 +258,10 @@ class MockDb {
   // アカウント削除
   // ══════════════════════════════════════════════════════════
   static Future<void> deleteUserData(String uid) async {
-    final keys = prefs.getKeys()
-      .where((k) => k.startsWith('fb_users/$uid') || k.startsWith('fb_nomikai'))
-      .toList();
-    for (final k in keys) await prefs.remove(k);
+    final keys = prefs.getKeys().where((k) => k.startsWith('fb_users/$uid') || k.startsWith('fb_nomikai')).toList();
+    for (final k in keys) {
+      await prefs.remove(k);
+    }
   }
 
   // 既読お知らせ
