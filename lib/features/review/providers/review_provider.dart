@@ -4,8 +4,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/mock_db.dart';
 import '../models/drink_review.dart';
+import '../repositories/review_repository.dart';
 
 class ReviewsNotifier extends StateNotifier<List<DrinkReview>> {
   final String uid;
@@ -13,12 +13,20 @@ class ReviewsNotifier extends StateNotifier<List<DrinkReview>> {
     _load();
   }
 
+  final _reviewRepository = ReviewRepository();
+
   void _load() {
-    state = MockDb.getReviews(uid);
+    Future(() async {
+      try {
+        state = await _reviewRepository.getReviews(uid);
+      } catch (e) {
+        // TODO: エラーハンドリング
+      }
+    });
   }
 
   Future<void> addReview(DrinkReview r) async {
-    final id = await MockDb.addReview(uid, r);
+    final id = await _reviewRepository.addReview(uid, r);
     state = [DrinkReview.fromMap(id, r.toMap()), ...state];
   }
 }

@@ -4,14 +4,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/api/claude_api.dart';
-import '../../../services/mock_db.dart';
-import '../../../services/prompts/recommendation_prompt.dart';
 import '../../common/models/taste_profile.dart';
 import '../../review/models/drink_review.dart';
+import '../repositories/recommend_repository.dart';
 
 class RecsState {
-  final Map<String, dynamic>? recs; // {low:{...}, mid:{...}, high:{...}}
+  final Map<String, dynamic>? recs;
   final List<Map<String, dynamic>> extraRecs;
   final Map<String, bool> done;
   final bool isLoading;
@@ -50,39 +48,41 @@ class RecsNotifier extends StateNotifier<RecsState> {
     _loadCache();
   }
 
-  void _loadCache() {
-    final cached = MockDb.getRecsCache(uid);
-    if (cached != null) {
-      state = RecsState(
-        recs: cached['recs'] as Map<String, dynamic>?,
-        done: Map<String, bool>.from(cached['done'] ?? {}),
-      );
+  final _repository = RecommendRepository();
+
+  // ── キャッシュ読み込み ────────────────────────────────
+  void _loadCache() async {
+    try {
+      final cached = await _repository.getCache(uid);
+      if (cached != null) {
+        state = RecsState(
+          recs: cached['recs'] as Map<String, dynamic>?,
+          done: Map<String, bool>.from(cached['done'] ?? {}),
+        );
+      }
+    } catch (_) {
+      // キャッシュ失敗は無視して続行
     }
   }
 
+  // ── おすすめ取得 ──────────────────────────────────────
   Future<void> fetchRecs(TasteProfile taste, List<DrinkReview> history) async {
     state = state.copyWith(isLoading: true, clearError: true, extraRecs: []);
     try {
-      final tasteMsg = 'good preference:sweet:${taste.sweet} body:${taste.body} '
-          'aroma:${taste.aroma} finish:${taste.finish} kick:${taste.kick}';
-      var msg = '私の好み: $tasteMsg';
-      if (history.isNotEmpty) {
-        msg += '\n\nレビュー履歴:\n${history.take(6).map((h) => '・${h.name}（${h.tier}）sweet:${h.sliders.sweet} '
-            'body:${h.sliders.body} 「${h.text}」').join('\n')}';
-      }
-      final result = await ClaudeApi.fetchRecommendations(
-        systemPrompt: buildRecSystemPrompt(genres),
-        userMessage: msg,
+      final result = await _repository.fetchRecs(
+        taste: taste,
+        history: history,
+        genres: genres,
       );
+
       if (result != null && result.containsKey('low') && result.containsKey('mid') && result.containsKey('high')) {
-        final next = state.copyWith(
+        state = state.copyWith(
           recs: result,
           done: {},
           isLoading: false,
           clearError: true,
         );
-        state = next;
-        await MockDb.setRecsCache(uid, {'recs': result, 'done': {}});
+        await _repository.setCache(uid, {'recs': result, 'done': {}});
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -97,12 +97,15 @@ class RecsNotifier extends StateNotifier<RecsState> {
     }
   }
 
+  // ── 完了フラグ ────────────────────────────────────────
   void markDone(String tierKey) {
     final next = {...state.done, tierKey: true};
     state = state.copyWith(done: next);
-    MockDb.setRecsCache(uid, {'recs': state.recs, 'done': next});
+    // キャッシュも更新（エラーは無視）
+    _repository.setCache(uid, {'recs': state.recs, 'done': next});
   }
 
+  // ── 追加ピックアップ ──────────────────────────────────
   Future<void> fetchExtraPickup({
     required String tier,
     required TasteProfile taste,
@@ -110,21 +113,19 @@ class RecsNotifier extends StateNotifier<RecsState> {
     required List<String> genres,
   }) async {
     try {
-      final tasteMsg = 'sweet:${taste.sweet} body:${taste.body} '
-          'aroma:${taste.aroma} finish:${taste.finish} kick:${taste.kick}';
-      var msg = '$tasteMsg\n価格帯: $tier';
-      if (history.isNotEmpty) {
-        msg += '\n直近レビュー: ${history.take(3).map((h) => h.name).join('、')}';
-      }
-      final result = await ClaudeApi.fetchExtraPickup(
-        systemPrompt: buildExtraSystemPrompt(genres),
-        userMessage: msg,
+      final result = await _repository.fetchExtra(
+        tier: tier,
+        taste: taste,
+        history: history,
+        genres: genres,
       );
       if (result != null && result.containsKey('name')) {
-        state = state.copyWith(extraRecs: [...state.extraRecs, result]);
+        state = state.copyWith(
+          extraRecs: [...state.extraRecs, result],
+        );
       }
-    } catch (e) {
-      // 静かに失敗
+    } catch (_) {
+      // 追加ピックアップ失敗は静かに無視
     }
   }
 }

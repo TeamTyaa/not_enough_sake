@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../utils/constants.dart';
 import '../../auth/models/app_user.dart';
 import '../../review/models/drink_review.dart';
 import '../../review/models/favorite_item.dart';
@@ -33,7 +34,7 @@ class RecommendController {
   void onReview({
     required BuildContext context,
     required RecommendedDrink drink,
-    required dynamic tier,
+    required PriceTier tier,
     required List<DrinkReview> reviews,
   }) {
     Navigator.of(context).push(

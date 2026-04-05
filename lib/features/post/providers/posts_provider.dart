@@ -3,25 +3,33 @@
 // ══════════════════════════════════════════════════════════
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/mock_db.dart';
 import '../models/nomikai_post.dart';
+import '../repositories/post_repository.dart';
 
 class PostsNotifier extends StateNotifier<List<NomikaiPost>> {
   PostsNotifier() : super([]) {
     _load();
   }
 
+  final _postRepository = PostRepository();
+
   void _load() {
-    state = MockDb.getPosts();
+    Future(() async {
+      try {
+        state = await _postRepository.getPosts();
+      } catch (e) {
+        // TODO: エラーハンドリング
+      }
+    });
   }
 
   Future<void> addPost(NomikaiPost post) async {
-    final id = await MockDb.addPost(post);
+    final id = await _postRepository.addPost(post);
     state = [NomikaiPost.fromMap(id, post.toMap()), ...state];
   }
 
   Future<void> updatePost(NomikaiPost post) async {
-    await MockDb.updatePost(post);
+    await _postRepository.updatePost(post);
     state = state.map((p) => p.id == post.id ? post : p).toList();
   }
 

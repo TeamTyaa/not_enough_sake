@@ -1,14 +1,15 @@
 // ============================================================
 // お知らせデータモデル
 // ============================================================
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppNotice {
   final String id;
   final String title;
   final String body;
-  final String startAt; // "YYYY-MM-DD"
-  final String endAt; // "YYYY-MM-DD"
-  final String createdAt;
+  final DateTime startAt;
+  final DateTime endAt;
+  final DateTime createdAt;
 
   const AppNotice({
     required this.id,
@@ -23,15 +24,25 @@ class AppNotice {
         id: id,
         title: m['title'] ?? '',
         body: m['body'] ?? '',
-        startAt: m['startAt'] ?? '',
-        endAt: m['endAt'] ?? '',
-        createdAt: m['createdAt'] ?? '',
+        startAt: _toDateTime(m['startAt']),
+        endAt: _toDateTime(m['endAt']),
+        createdAt: _toDateTime(m['createdAt']),
       );
 
-  bool isActive(DateTime today) {
-    final s = DateTime.tryParse(startAt);
-    final e = DateTime.tryParse(endAt);
-    if (s == null || e == null) return false;
-    return !today.isBefore(s) && !today.isAfter(e);
+  Map<String, dynamic> toMap() => {
+        'title': title,
+        'body': body,
+        'startAt': Timestamp.fromDate(startAt),
+        'endAt': Timestamp.fromDate(endAt),
+        'createdAt': Timestamp.fromDate(createdAt),
+      };
+
+  bool isActive(DateTime now) => !now.isBefore(startAt) && !now.isAfter(endAt);
+
+  static DateTime _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value) ?? DateTime(2000);
+    if (value is DateTime) return value;
+    return DateTime(2000);
   }
 }

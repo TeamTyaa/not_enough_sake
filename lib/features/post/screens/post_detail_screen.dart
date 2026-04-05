@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/mock_db.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/buttons/gold_button.dart';
 import '../../../widgets/cards/category_tag.dart';
@@ -19,6 +18,8 @@ import '../models/post_rating.dart';
 import '../models/post_status.dart';
 import '../models/report_data.dart';
 import '../providers/posts_provider.dart';
+import '../repositories/post_repository.dart';
+import '../repositories/report_repository.dart';
 
 class PostDetailScreen extends ConsumerStatefulWidget {
   final NomikaiPost post;
@@ -42,6 +43,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   List<PostComment> _comments = [];
   bool _loadingComments = true;
   final _commentCtrl = TextEditingController();
+  final _postRepository = PostRepository();
+  final _reportRepository = ReportRepository();
   bool _submitting = false;
   String _err = '';
 
@@ -58,11 +61,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     super.dispose();
   }
 
-  void _loadComments() {
-    setState(() {
-      _comments = MockDb.getComments(_post.id);
-      _loadingComments = false;
-    });
+  void _loadComments() async {
+    final comments = await _postRepository.getComments(_post.id);
+    if (mounted) {
+      setState(() {
+        _comments = comments;
+        _loadingComments = false;
+      });
+    }
   }
 
   bool get _hasIntent => _post.intents.any((i) => i.nick == widget.myNick);
@@ -98,7 +104,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
         text: _commentCtrl.text.trim(),
         createdAt: DateTime.now().toIso8601String(),
       );
-      final id = await MockDb.addComment(_post.id, c);
+      final id = await _postRepository.addComment(_post.id, c);
       setState(() {
         _comments = [..._comments, PostComment.fromMap(id, c.toMap())];
         _commentCtrl.clear();
@@ -118,7 +124,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           ? PostStatus.confirmed
           : _post.status;
       final updated = _post.copyWith(intents: newIntents, status: newStatus);
-      await MockDb.updatePost(updated);
+      await _postRepository.updatePost(updated);
       ref.read(postsProvider.notifier).updatePost(updated);
       setState(() => _post = updated);
     } catch (e) {
@@ -131,7 +137,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     try {
       final newIntents = _post.intents.where((i) => i.uid != widget.myUid).toList();
       final updated = _post.copyWith(intents: newIntents);
-      await MockDb.updatePost(updated);
+      await _postRepository.updatePost(updated);
       ref.read(postsProvider.notifier).updatePost(updated);
       setState(() => _post = updated);
     } catch (e) {
@@ -353,7 +359,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                           comment: commentCtrl.text.trim(),
                         );
                         final updated = _post.copyWith(ratings: [..._post.ratings, rating]);
-                        await MockDb.updatePost(updated);
+                        await _postRepository.updatePost(updated);
                         ref.read(postsProvider.notifier).updatePost(updated);
                         setState(() => _post = updated);
                         if (ctx.mounted) Navigator.of(ctx).pop();
@@ -419,7 +425,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     ? () async {
                         final messenger = ScaffoldMessenger.of(context);
 
-                        await MockDb.addReport(ReportData(
+                        await _reportRepository.addReport(ReportData(
                           postId: _post.id,
                           authorNick: _post.authorNick,
                           reporterUid: widget.myUid,

@@ -4,8 +4,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/mock_db.dart';
 import '../models/app_notice.dart';
+import '../repositories/notice_repository.dart';
 
 class NoticesState {
   final List<AppNotice> all;
@@ -30,16 +30,24 @@ class NoticesNotifier extends StateNotifier<NoticesState> {
     _load();
   }
 
+  final _noticeRepository = NoticeRepository();
+
   void _load() {
-    final notices = MockDb.getNotices();
-    final readIds = MockDb.getReadNoticeIds();
-    state = NoticesState(all: notices, readIds: readIds);
+    Future(() async {
+      try {
+        final notices = await _noticeRepository.getNotices();
+        final readIds = await _noticeRepository.getReadIds();
+        state = NoticesState(all: notices, readIds: readIds);
+      } catch (e) {
+        // TODO: エラーハンドリング
+      }
+    });
   }
 
   Future<void> markRead(String id) async {
     if (state.readIds.contains(id)) return;
     final next = [...state.readIds, id];
-    await MockDb.setReadNoticeIds(next);
+    await _noticeRepository.setReadIds(next);
     state = state.copyWith(readIds: next);
   }
 }

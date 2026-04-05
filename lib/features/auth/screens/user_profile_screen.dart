@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../services/mock_db.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/cards/category_tag.dart';
 import '../../../widgets/cards/section_label.dart';
@@ -10,6 +9,8 @@ import '../../../widgets/media/drink_image.dart';
 import '../../common/models/taste_profile.dart';
 import '../../review/models/drink_review.dart';
 import '../../review/models/favorite_item.dart';
+import '../../review/repositories/favorite_repository.dart';
+import '../../review/repositories/review_repository.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String nick;
@@ -28,6 +29,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _err = '';
   int _visibleCount = 10;
   final _scrollCtrl = ScrollController();
+  final _favoriteRepository = FavoriteRepository();
+  final _reviewRepository = ReviewRepository();
 
   @override
   void initState() {
@@ -47,9 +50,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   void _load() {
-    setState(() {
-      _reviews = MockDb.getReviews(widget.uid);
-      _favs = MockDb.getFavorites(widget.uid);
+    setState(() async {
+      _reviews = await _reviewRepository.getReviews(widget.uid);
+      _favs = await _favoriteRepository.getFavorites(widget.uid);
       _loading = false;
     });
   }

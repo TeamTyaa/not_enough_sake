@@ -4,8 +4,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/mock_db.dart';
 import '../models/favorite_item.dart';
+import '../repositories/favorite_repository.dart';
 
 class FavoritesNotifier extends StateNotifier<List<FavoriteItem>> {
   final String uid;
@@ -13,12 +13,20 @@ class FavoritesNotifier extends StateNotifier<List<FavoriteItem>> {
     _load();
   }
 
+  final _favoriteRepository = FavoriteRepository();
+
   void _load() {
-    state = MockDb.getFavorites(uid);
+    Future(() async {
+      try {
+        state = await _favoriteRepository.getFavorites(uid);
+      } catch (e) {
+        // TODO: エラーハンドリング
+      }
+    });
   }
 
   Future<void> setFavorites(List<FavoriteItem> favs) async {
-    await MockDb.setFavorites(uid, favs);
+    await _favoriteRepository.setFavorites(uid, favs);
     state = favs;
   }
 
