@@ -1,4 +1,9 @@
+// ============================================================
+// ユーザープロフィール画面
+// ============================================================
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/cards/category_tag.dart';
@@ -7,8 +12,8 @@ import '../../../widgets/feedback/error_banner.dart';
 import '../../../widgets/layout/nomigatari_app_bar.dart';
 import '../../../widgets/media/drink_image.dart';
 import '../../common/models/taste_profile.dart';
-import '../../review/models/drink_review.dart';
-import '../../review/models/favorite_item.dart';
+import '../../review/models/favorite.dart';
+import '../../review/models/review.dart';
 import '../../review/repositories/favorite_repository.dart';
 import '../../review/repositories/review_repository.dart';
 
@@ -23,8 +28,8 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  List<DrinkReview> _reviews = [];
-  List<FavoriteItem> _favs = [];
+  List<Review> _reviews = [];
+  List<Favorite> _favs = [];
   bool _loading = true;
   String _err = '';
   int _visibleCount = 10;
@@ -143,7 +148,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                                   Text(h.name, style: const TextStyle(fontSize: 14, color: kGold)),
-                                  Text(h.date, style: const TextStyle(fontSize: 10, color: kDim)),
+                                  Text(DateFormat('yyyy年M月d日').format(h.createdAt.toDate()),
+                                      style: const TextStyle(fontSize: 10, color: kDim)),
                                 ]),
                                 const SizedBox(height: 6),
                                 Wrap(spacing: 5, runSpacing: 4, children: [

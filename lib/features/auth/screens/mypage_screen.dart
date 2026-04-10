@@ -1,5 +1,10 @@
+// ============================================================
+// マイページ画面
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/buttons/gold_button.dart';
@@ -142,7 +147,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           _Card(
               child: Column(children: [
             _InfoRow('メールアドレス', user.email),
-            _InfoRow('生年月日', user.birthday),
+            _InfoRow('生年月日', DateFormat('yyyy年M月d日').format(user.birthday.toDate())),
             _InfoRow('性別', user.gender),
           ])),
           const SizedBox(height: 14),

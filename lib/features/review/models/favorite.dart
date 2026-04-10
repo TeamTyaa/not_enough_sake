@@ -1,36 +1,33 @@
 // ============================================================
-// 投稿コメントモデル
+// お気に入りモデル
 // ============================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PostComment {
+class Favorite {
   final String id;
-  final String nick;
-  final String uid;
-  final String text;
+  final String name;
+  final String category;
   final Timestamp createdAt;
 
-  const PostComment({
+  const Favorite({
     required this.id,
-    required this.nick,
-    required this.uid,
-    required this.text,
+    required this.name,
+    required this.category,
     required this.createdAt,
   });
 
-  factory PostComment.fromMap(Map<String, dynamic> m) => PostComment(
+  factory Favorite.fromMap(Map<String, dynamic> m) => Favorite(
         id: m['id'] ?? '',
-        nick: m['nick'] ?? '',
-        uid: m['uid'] ?? '',
-        text: m['text'] ?? '',
+        name: m['name'] ?? '',
+        category: m['category'] ?? '',
         createdAt: m['createdAt'] ?? Timestamp.now(),
       );
 
   Map<String, dynamic> toMap() => {
-        'nick': nick,
-        'uid': uid,
-        'text': text,
+        'id': id,
+        'name': name,
+        'category': category,
         'createdAt': createdAt,
       };
 }

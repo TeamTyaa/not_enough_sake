@@ -1,8 +1,12 @@
+// ============================================================
+// 通報データリポジトリ
+// ============================================================
+
 import '../../../services/db_service.dart';
-import '../models/report_data.dart';
+import '../models/report.dart';
 
 class ReportRepository {
-  Future<void> addReport(ReportData r) async {
+  Future<void> addReport(Report r) async {
     await DbService.collection('reports').add(r.toMap());
   }
 }

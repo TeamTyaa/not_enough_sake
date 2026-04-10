@@ -1,5 +1,5 @@
 // ============================================================
-// services/ai/openai_provider.dart — OpenAI実装（将来用）
+// OpenAIプロバイダ
 // ============================================================
 // TODO: アプリ利用者が増えたら、geminiからchatgptへの移行を検討
 
@@ -19,9 +19,10 @@ class OpenAiProvider implements AiProvider {
   });
 
   @override
-  Future<String> generate({
+  Future<Map<String, dynamic>> generateJson({
     required String systemPrompt,
     required String userMessage,
+    required Map<String, dynamic> responseSchema,
     int maxTokens = 1200,
   }) async {
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
@@ -40,6 +41,15 @@ class OpenAiProvider implements AiProvider {
               {'role': 'system', 'content': systemPrompt},
               {'role': 'user', 'content': userMessage},
             ],
+            // Structured Output の指定
+            'response_format': {
+              'type': 'json_schema',
+              'json_schema': {
+                'name': 'response',
+                'strict': true,
+                'schema': responseSchema,
+              },
+            },
           }),
         )
         .timeout(const Duration(seconds: 60));
@@ -49,6 +59,7 @@ class OpenAiProvider implements AiProvider {
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    return data['choices'][0]['message']['content'] as String;
+    final content = data['choices'][0]['message']['content'] as String;
+    return jsonDecode(content) as Map<String, dynamic>;
   }
 }

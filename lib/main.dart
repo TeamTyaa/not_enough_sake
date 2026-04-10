@@ -1,3 +1,7 @@
+// ============================================================
+// アプリメイン
+// ============================================================
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -135,6 +139,7 @@ class _RootRouter extends ConsumerWidget {
   const _RootRouter();
 
   @override
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
 
@@ -144,8 +149,13 @@ class _RootRouter extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator(color: kGold)),
       );
     }
-    if (auth.blocked != null) return _UnderageScreen(blocked: auth.blocked!);
-    if (auth.user == null) return const LoginScreen();
+
+    // ① 未ログイン
+    if (auth.user == null) {
+      return const LoginScreen();
+    }
+
+    // ② 未登録（プロフィール未設定）
     if (auth.user!.nickname.isEmpty) {
       return ProfileScreen(
         uid: auth.user!.uid,
@@ -153,23 +163,29 @@ class _RootRouter extends ConsumerWidget {
         email: auth.user!.email,
       );
     }
+
+    // ③ 未成年チェック
+    if (auth.blocked?.isUnderAge == true) {
+      return _UnderageScreen(blocked: auth.blocked!);
+    }
+
+    // ④ ブラックリストチェック（追加）
+    if (auth.blocked?.isBanned == true) {
+      return const BannedScreen(); // ←新規作成
+    }
+
+    // ⑤ OKならメイン
     return const MainScreen();
   }
 }
 
-// ── 未成年ブロック画面（変更なし） ───────────────────────
+// ── 未成年ブロック画面 ───────────────────────
 class _UnderageScreen extends StatelessWidget {
   final BlockedUser blocked;
   const _UnderageScreen({required this.blocked});
 
   @override
   Widget build(BuildContext context) {
-    final birthday = DateTime.tryParse(blocked.birthday);
-    int daysLeft = 0;
-    if (birthday != null) {
-      final turnsAdult = DateTime(birthday.year + 20, birthday.month, birthday.day);
-      daysLeft = turnsAdult.difference(DateTime.now()).inDays.clamp(0, 99999);
-    }
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -191,11 +207,10 @@ class _UnderageScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'このアカウントは20歳未満のためご利用いただけません。\n20歳になるまで、あと ',
+                'このアカウントは20歳未満のためご利用いただけません。',
                 style: const TextStyle(fontSize: 13, color: kMuted, height: 1.85),
                 textAlign: TextAlign.center,
               ),
-              Text('$daysLeft 日', style: const TextStyle(fontSize: 18, color: kGold)),
               const SizedBox(height: 16),
               const Text(
                 '成人になると自動的にご利用いただけるようになります。',
@@ -210,6 +225,19 @@ class _UnderageScreen extends StatelessWidget {
             ]),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class BannedScreen extends StatelessWidget {
+  const BannedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Text('このアカウントは利用停止されています'),
       ),
     );
   }

@@ -1,3 +1,7 @@
+// ============================================================
+// メイン画面
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +14,7 @@ import '../features/post/screens/nomikai_board_screen.dart';
 import '../features/recommend/screens/recommend_screen.dart';
 import '../features/review/providers/review_provider.dart';
 import '../features/review/screens/favorites_screen.dart';
-import '../features/review/screens/history_screen.dart';
+import '../features/review/screens/review_history_screen.dart';
 import '../features/token/providers/token_provider.dart';
 import '../utils/constants.dart';
 
@@ -241,7 +245,7 @@ class _AppDrawer extends ConsumerWidget {
             _DrawerItem(
               icon: '📋',
               label: 'レビュー履歴',
-              onTap: () => onNavigate(HistoryScreen(uid: user.uid)),
+              onTap: () => onNavigate(ReviewHistoryScreen(uid: user.uid)),
             ),
             _DrawerItem(
               icon: '⭐',

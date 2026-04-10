@@ -1,16 +1,28 @@
+// ══════════════════════════════════════════════════════════
+// トークンリポジトリ
+// ══════════════════════════════════════════════════════════
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../services/db_service.dart';
-import '../models/token_balance.dart';
+import '../models/token.dart';
 
 class TokenRepository {
-  Future<TokenBalance> getTokens(String uid) async {
+  Future<Token> getTokens(String uid) async {
     final snap = await DbService.doc('users/$uid/tokens').get();
-    if (!snap.exists) return const TokenBalance();
-    return TokenBalance.fromMap(snap.data()! as Map<String, dynamic>);
+    Token token;
+    if (!snap.exists) {
+      token = Token(
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      );
+    } else {
+      token = Token.fromMap(snap.data()! as Map<String, dynamic>);
+    }
+    return token;
   }
 
-  Future<void> setTokens(String uid, TokenBalance t) async {
+  Future<void> setTokens(String uid, Token t) async {
     await DbService.doc('users/$uid/tokens').set(t.toMap());
   }
 
@@ -19,7 +31,12 @@ class TokenRepository {
 
     return await FirebaseFirestore.instance.runTransaction((tx) async {
       final snap = await tx.get(ref);
-      final current = snap.exists ? TokenBalance.fromMap(snap.data()! as Map<String, dynamic>) : const TokenBalance();
+      final current = snap.exists
+          ? Token.fromMap(snap.data()! as Map<String, dynamic>)
+          : Token(
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            );
 
       if (current.free < amount) return false;
 

@@ -1,8 +1,12 @@
+// ══════════════════════════════════════════════════════════
+// おすすめリポジトリ
+// ══════════════════════════════════════════════════════════
+
 import '../../../services/ai/ai_service.dart';
 import '../../../services/db_service.dart';
-import '../../../services/prompts/recommendation_prompt.dart';
+import '../../../services/prompts/recommend_prompt.dart';
 import '../../common/models/taste_profile.dart';
-import '../../review/models/drink_review.dart';
+import '../../review/models/review.dart';
 
 class RecommendRepository {
   Future<Map<String, dynamic>?> getCache(String uid) async {
@@ -17,7 +21,7 @@ class RecommendRepository {
 
   Future<Map<String, dynamic>?> fetchRecs({
     required TasteProfile taste,
-    required List<DrinkReview> history,
+    required List<Review> history,
     required List<String> genres,
   }) async {
     final tasteMsg =
@@ -38,7 +42,7 @@ class RecommendRepository {
   Future<Map<String, dynamic>?> fetchExtra({
     required String tier,
     required TasteProfile taste,
-    required List<DrinkReview> history,
+    required List<Review> history,
     required List<String> genres,
   }) async {
     final tasteMsg = 'sweet:${taste.sweet} body:${taste.body} aroma:${taste.aroma} '

@@ -5,7 +5,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/models/taste_profile.dart';
-import '../../review/models/drink_review.dart';
+import '../../review/models/review.dart';
 import '../repositories/recommend_repository.dart';
 
 class RecsState {
@@ -66,7 +66,7 @@ class RecsNotifier extends StateNotifier<RecsState> {
   }
 
   // ── おすすめ取得 ──────────────────────────────────────
-  Future<void> fetchRecs(TasteProfile taste, List<DrinkReview> history) async {
+  Future<void> fetchRecs(TasteProfile taste, List<Review> history) async {
     state = state.copyWith(isLoading: true, clearError: true, extraRecs: []);
     try {
       final result = await _repository.fetchRecs(
@@ -109,7 +109,7 @@ class RecsNotifier extends StateNotifier<RecsState> {
   Future<void> fetchExtraPickup({
     required String tier,
     required TasteProfile taste,
-    required List<DrinkReview> history,
+    required List<Review> history,
     required List<String> genres,
   }) async {
     try {

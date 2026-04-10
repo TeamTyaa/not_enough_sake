@@ -1,5 +1,11 @@
+// ============================================================
+// 掲示板投稿画面
+// ============================================================
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/buttons/gold_button.dart';
@@ -13,10 +19,10 @@ import '../../auth/screens/user_profile_screen.dart';
 import '../../common/models/taste_profile.dart';
 import '../models/intent_user.dart';
 import '../models/nomikai_post.dart';
+import '../models/nomikai_rating.dart';
 import '../models/post_comment.dart';
-import '../models/post_rating.dart';
 import '../models/post_status.dart';
-import '../models/report_data.dart';
+import '../models/report.dart';
 import '../providers/posts_provider.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/report_repository.dart';
@@ -102,11 +108,11 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
         nick: widget.myNick,
         uid: widget.myUid,
         text: _commentCtrl.text.trim(),
-        createdAt: DateTime.now().toIso8601String(),
+        createdAt: Timestamp.now(),
       );
-      final id = await _postRepository.addComment(_post.id, c);
+      await _postRepository.addComment(_post.id, c);
       setState(() {
-        _comments = [..._comments, PostComment.fromMap(id, c.toMap())];
+        _comments = [..._comments, PostComment.fromMap(c.toMap())];
         _commentCtrl.clear();
       });
     } catch (e) {
@@ -190,7 +196,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 ]),
                 const SizedBox(height: 12),
                 Wrap(spacing: 16, runSpacing: 6, children: [
-                  _IC('📅', _post.date),
+                  _IC('📅', DateFormat('yyyy年M月d日').format(_post.date.toDate())),
                   _IC('📍', _post.place),
                   _IC('💴', _post.budget),
                   _IC('👥', '${_post.intents.length}/${_post.capacity}人'),
@@ -350,13 +356,16 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 label: '評価を送る →',
                 onPressed: stars > 0 && commentCtrl.text.isNotEmpty
                     ? () async {
-                        final rating = PostRating(
+                        final rating = NomikaiRating(
+                          postId: '',
                           fromNick: widget.myNick,
                           fromUid: widget.myUid,
+                          toUid: _isAuthor ? '参加者' : _post.authorUid,
                           toNick: _isAuthor ? '参加者' : _post.authorNick,
                           role: _isAuthor ? 'host' : 'guest',
                           stars: stars,
                           comment: commentCtrl.text.trim(),
+                          createdAt: Timestamp.now(),
                         );
                         final updated = _post.copyWith(ratings: [..._post.ratings, rating]);
                         await _postRepository.updatePost(updated);
@@ -425,14 +434,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     ? () async {
                         final messenger = ScaffoldMessenger.of(context);
 
-                        await _reportRepository.addReport(ReportData(
+                        await _reportRepository.addReport(Report(
                           postId: _post.id,
                           authorNick: _post.authorNick,
                           reporterUid: widget.myUid,
                           reporterNick: widget.myNick,
                           reason: reason!,
                           detail: detailCtrl.text,
-                          reportedAt: DateTime.now().toIso8601String(),
+                          createdAt: Timestamp.now(),
                         ));
                         if (ctx.mounted) Navigator.of(ctx).pop();
                         messenger.showSnackBar(const SnackBar(content: Text('通報を受け付けました')));
@@ -480,7 +489,7 @@ class _CommentTile extends StatelessWidget {
                 )),
           ),
           Text(
-            comment.createdAt.split('T').first,
+            DateFormat('yyyy年M月d日').format(comment.createdAt.toDate()),
             style: const TextStyle(fontSize: 10, color: kDim),
           ),
         ]),

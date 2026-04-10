@@ -1,3 +1,8 @@
+// ============================================================
+// プロフィール登録画面
+// ============================================================
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,19 +72,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       try {
         final blocked = BlockedUser(
           uid: widget.uid,
-          email: widget.email ?? '',
-          birthday: _dob,
-          blockedAt: DateTime.now().toIso8601String(),
+          isUnderAge: true,
+          isBanned: false,
+          reason: '未成年のため',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
         );
         await ref.read(authProvider.notifier).saveProfile(
               AppUser(
                 uid: widget.uid,
                 nickname: _nickCtrl.text.trim(),
                 email: widget.email ?? '',
-                birthday: _dob,
+                birthday: Timestamp.fromDate(birthday),
                 gender: _gender,
                 genres: _genres,
                 tasteProfile: _sliders,
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
               ),
             );
         // TODO: setBlocked(blocked) の実装
@@ -98,10 +107,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         uid: widget.uid,
         nickname: _nickCtrl.text.trim(),
         email: widget.email ?? '',
-        birthday: _dob,
+        birthday: Timestamp.fromDate(birthday),
         gender: _gender,
         genres: _genres,
         tasteProfile: _sliders,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       );
       await ref.read(authProvider.notifier).saveProfile(user);
     } catch (e) {

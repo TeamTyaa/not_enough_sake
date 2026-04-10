@@ -1,5 +1,5 @@
 // ============================================================
-// 好みデータモデル
+// 好みプロファイルモデル
 // ============================================================
 
 import 'dart:math';
@@ -35,6 +35,21 @@ class TasteProfile {
         'kick': kick,
       };
 
+  TasteProfile copyWith({
+    int? sweet,
+    int? body,
+    int? aroma,
+    int? finish,
+    int? kick,
+  }) =>
+      TasteProfile(
+        sweet: sweet ?? this.sweet,
+        body: body ?? this.body,
+        aroma: aroma ?? this.aroma,
+        finish: finish ?? this.finish,
+        kick: kick ?? this.kick,
+      );
+
   bool get isJustRight =>
       sweet.abs() <= 1 && body.abs() <= 1 && aroma.abs() <= 1 && finish.abs() <= 1 && kick.abs() <= 1;
 
@@ -48,13 +63,16 @@ class TasteProfile {
   }
 
   static TasteProfile average(List<TasteProfile> list) {
-    if (list.isEmpty) return const TasteProfile();
-    return TasteProfile(
-      sweet: (list.map((e) => e.sweet).reduce((a, b) => a + b) / list.length).round(),
-      body: (list.map((e) => e.body).reduce((a, b) => a + b) / list.length).round(),
-      aroma: (list.map((e) => e.aroma).reduce((a, b) => a + b) / list.length).round(),
-      finish: (list.map((e) => e.finish).reduce((a, b) => a + b) / list.length).round(),
-      kick: (list.map((e) => e.kick).reduce((a, b) => a + b) / list.length).round(),
-    );
+    TasteProfile tasteProfile = TasteProfile();
+    if (list.isNotEmpty) {
+      tasteProfile = tasteProfile.copyWith(
+        sweet: (list.map((e) => e.sweet).reduce((a, b) => a + b) / list.length).round(),
+        body: (list.map((e) => e.body).reduce((a, b) => a + b) / list.length).round(),
+        aroma: (list.map((e) => e.aroma).reduce((a, b) => a + b) / list.length).round(),
+        finish: (list.map((e) => e.finish).reduce((a, b) => a + b) / list.length).round(),
+        kick: (list.map((e) => e.kick).reduce((a, b) => a + b) / list.length).round(),
+      );
+    }
+    return tasteProfile;
   }
 }

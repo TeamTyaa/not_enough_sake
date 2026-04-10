@@ -1,5 +1,5 @@
 // ============================================================
-// services/ai/gemini_provider.dart — Gemini実装
+// Geminiプロバイダ
 // ============================================================
 
 import 'dart:convert';
@@ -10,10 +10,6 @@ import 'ai_provider.dart';
 
 class GeminiProvider implements AiProvider {
   final String apiKey;
-
-  // モデル選択
-  // gemini-1.5-flash-002 → 安くて速い（レコメンド用途に十分）
-  // gemini-1.5-pro-002   → 高精度（必要に応じて切り替え）
   final String model;
 
   GeminiProvider({
@@ -22,9 +18,10 @@ class GeminiProvider implements AiProvider {
   });
 
   @override
-  Future<String> generate({
+  Future<Map<String, dynamic>> generateJson({
     required String systemPrompt,
     required String userMessage,
+    required Map<String, dynamic> responseSchema,
     int maxTokens = 1200,
   }) async {
     final url = Uri.parse(
@@ -53,6 +50,9 @@ class GeminiProvider implements AiProvider {
             'generationConfig': {
               'temperature': 0.7,
               'maxOutputTokens': maxTokens,
+              // Structured Output の指定
+              'responseMimeType': 'application/json',
+              'responseSchema': responseSchema,
             },
           }),
         )
@@ -63,6 +63,8 @@ class GeminiProvider implements AiProvider {
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    return data['candidates'][0]['content']['parts'][0]['text'] as String;
+    // Structured Output 指定時はテキストが必ず有効なJSONで返ってくる
+    final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
+    return jsonDecode(text) as Map<String, dynamic>;
   }
 }

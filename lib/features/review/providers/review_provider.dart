@@ -4,10 +4,10 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/drink_review.dart';
+import '../models/review.dart';
 import '../repositories/review_repository.dart';
 
-class ReviewsNotifier extends StateNotifier<List<DrinkReview>> {
+class ReviewsNotifier extends StateNotifier<List<Review>> {
   final String uid;
   ReviewsNotifier(this.uid) : super([]) {
     _load();
@@ -25,12 +25,12 @@ class ReviewsNotifier extends StateNotifier<List<DrinkReview>> {
     });
   }
 
-  Future<void> addReview(DrinkReview r) async {
+  Future<void> addReview(Review r) async {
     final id = await _reviewRepository.addReview(uid, r);
-    state = [DrinkReview.fromMap(id, r.toMap()), ...state];
+    state = [Review.fromMap(id, r.toMap()), ...state];
   }
 }
 
-final reviewsProvider = StateNotifierProvider.family<ReviewsNotifier, List<DrinkReview>, String>(
+final reviewsProvider = StateNotifierProvider.family<ReviewsNotifier, List<Review>, String>(
   (_, uid) => ReviewsNotifier(uid),
 );

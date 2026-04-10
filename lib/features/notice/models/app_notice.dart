@@ -7,9 +7,10 @@ class AppNotice {
   final String id;
   final String title;
   final String body;
-  final DateTime startAt;
-  final DateTime endAt;
-  final DateTime createdAt;
+  final Timestamp startAt;
+  final Timestamp endAt;
+  final Timestamp createdAt;
+  final Timestamp updatedAt;
 
   const AppNotice({
     required this.id,
@@ -18,31 +19,30 @@ class AppNotice {
     required this.startAt,
     required this.endAt,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   factory AppNotice.fromMap(String id, Map<String, dynamic> m) => AppNotice(
         id: id,
         title: m['title'] ?? '',
         body: m['body'] ?? '',
-        startAt: _toDateTime(m['startAt']),
-        endAt: _toDateTime(m['endAt']),
-        createdAt: _toDateTime(m['createdAt']),
+        startAt: m['startAt'] ?? Timestamp.now(),
+        endAt: m['endAt'] ?? Timestamp.now(),
+        createdAt: m['createdAt'] ?? Timestamp.now(),
+        updatedAt: m['updatedAt'] ?? Timestamp.now(),
       );
 
   Map<String, dynamic> toMap() => {
         'title': title,
         'body': body,
-        'startAt': Timestamp.fromDate(startAt),
-        'endAt': Timestamp.fromDate(endAt),
-        'createdAt': Timestamp.fromDate(createdAt),
+        'startAt': startAt,
+        'endAt': endAt,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
       };
 
-  bool isActive(DateTime now) => !now.isBefore(startAt) && !now.isAfter(endAt);
-
-  static DateTime _toDateTime(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is String) return DateTime.tryParse(value) ?? DateTime(2000);
-    if (value is DateTime) return value;
-    return DateTime(2000);
+  bool get isActive {
+    final now = Timestamp.now();
+    return startAt.compareTo(now) <= 0 && endAt.compareTo(now) > 0;
   }
 }

@@ -1,7 +1,13 @@
+// ============================================================
+// 飲み会掲示板画面
+// ============================================================
+
 import 'dart:math' show sqrt;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/buttons/gold_button.dart';
@@ -10,7 +16,6 @@ import '../../../widgets/cards/trust_badge.dart';
 import '../../auth/models/app_user.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../common/models/taste_profile.dart';
-import '../../common/providers/taste_provider.dart';
 import '../../review/providers/review_provider.dart';
 import '../models/nomikai_post.dart';
 import '../models/post_status.dart';
@@ -37,7 +42,7 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
     super.initState();
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
-        setState(() => _visibleCount += kPageSize);
+        ref.read(postsProvider.notifier).loadMore();
       }
     });
   }
@@ -50,7 +55,6 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
 
   double _dist(NomikaiPost post, TasteProfile myTaste) {
     final t = post.authorTaste;
-    if (t == null) return 999;
     final ds = t.sweet - myTaste.sweet,
         db = t.body - myTaste.body,
         da = t.aroma - myTaste.aroma,
@@ -63,9 +67,9 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user!;
     final reviews = ref.watch(reviewsProvider(user.uid));
-    final myTaste = ref.watch(myTasteProvider((user.tasteProfile, reviews)));
     final tasteReady = reviews.length >= kReviewThreshold;
     final posts = ref.watch(postsProvider);
+    final postsState = ref.watch(postsProvider);
 
     if (!tasteReady) {
       return _LockedView(
@@ -75,7 +79,7 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
     }
 
     // ソート・フィルター
-    var display = posts.where((p) => _dist(p, myTaste) <= kSimilarityThreshold).toList();
+    var display = postsState.posts.where((p) => _dist(p, user.tasteProfile) <= kSimilarityThreshold).toList();
 
     if (_filterCity.isNotEmpty) {
       display = display.where((p) => p.place.contains(_filterCity)).toList();
@@ -95,7 +99,7 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
       case 'deadline':
         display.sort((a, b) => a.date.compareTo(b.date));
       default:
-        display.sort((a, b) => _dist(a, myTaste).compareTo(_dist(b, myTaste)));
+        display.sort((a, b) => _dist(a, user.tasteProfile).compareTo(_dist(b, user.tasteProfile)));
     }
 
     final visible = display.take(_visibleCount).toList();
@@ -105,96 +109,114 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: kGold,
         foregroundColor: kBg,
-        onPressed: () => _showNewPostSheet(context, user, myTaste),
+        onPressed: () => _showNewPostSheet(context, user, user.tasteProfile, user.trustScore ?? 0),
         label: const Text('＋ 飲み会を開く', style: TextStyle(letterSpacing: 1)),
         icon: const Icon(Icons.add),
       ),
-      body: ListView(
-        controller: _scrollCtrl,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
-          // ソートボタン
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: kSortOptions
-                .map((opt) => _SortChip(
-                      label: opt.label,
-                      selected: _sort == opt.key,
-                      onTap: () => setState(() {
-                        _sort = opt.key;
-                        _visibleCount = kPageSize;
-                      }),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 12),
+      body: RefreshIndicator(
+        color: kGold,
+        backgroundColor: kCard,
+        onRefresh: () => ref.read(postsProvider.notifier).loadFirst(),
+        child: ListView(
+          controller: _scrollCtrl,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          children: [
+            // ソートボタン
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: kSortOptions
+                  .map((opt) => _SortChip(
+                        label: opt.label,
+                        selected: _sort == opt.key,
+                        onTap: () => setState(() {
+                          _sort = opt.key;
+                          _visibleCount = kPageSize;
+                        }),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 12),
 
-          // フィルター
-          _FilterSection(
-            city: _filterCity,
-            minCap: _filterMinCap,
-            maxCap: _filterMaxCap,
-            onCityChanged: (v) => setState(() {
-              _filterCity = v;
-              _visibleCount = kPageSize;
-            }),
-            onMinCapChanged: (v) => setState(() {
-              _filterMinCap = v;
-              _visibleCount = kPageSize;
-            }),
-            onMaxCapChanged: (v) => setState(() {
-              _filterMaxCap = v;
-              _visibleCount = kPageSize;
-            }),
-            onClear: () => setState(() {
-              _filterCity = _filterMinCap = _filterMaxCap = '';
-              _visibleCount = kPageSize;
-            }),
-          ),
-          const SizedBox(height: 8),
+            // フィルター
+            _FilterSection(
+              city: _filterCity,
+              minCap: _filterMinCap,
+              maxCap: _filterMaxCap,
+              onCityChanged: (v) => setState(() {
+                _filterCity = v;
+                _visibleCount = kPageSize;
+              }),
+              onMinCapChanged: (v) => setState(() {
+                _filterMinCap = v;
+                _visibleCount = kPageSize;
+              }),
+              onMaxCapChanged: (v) => setState(() {
+                _filterMaxCap = v;
+                _visibleCount = kPageSize;
+              }),
+              onClear: () => setState(() {
+                _filterCity = _filterMinCap = _filterMaxCap = '';
+                _visibleCount = kPageSize;
+              }),
+            ),
+            const SizedBox(height: 8),
 
-          Text('${display.length}件', style: const TextStyle(fontSize: 11, color: kDim)),
-          const SizedBox(height: 12),
+            Text('${display.length}件', style: const TextStyle(fontSize: 11, color: kDim)),
+            const SizedBox(height: 12),
 
-          if (visible.isEmpty)
-            const Center(
-                child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 60),
-              child: Text('条件に一致する飲み会が見つかりません。', style: TextStyle(fontSize: 13, color: kDim)),
-            ))
-          else ...[
-            ...visible.map((post) => _PostCard(
-                  post: post,
-                  myTaste: myTaste,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => PostDetailScreen(
-                      post: post,
-                      myNick: user.nickname,
-                      myUid: user.uid,
-                      myTaste: myTaste,
-                    ),
+            if (visible.isEmpty)
+              const Center(
+                  child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Text('条件に一致する飲み会が見つかりません。', style: TextStyle(fontSize: 13, color: kDim)),
+              ))
+            else ...[
+              ...visible.map((post) => _PostCard(
+                    post: post,
+                    myTaste: user.tasteProfile,
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(
+                        post: post,
+                        myNick: user.nickname,
+                        myUid: user.uid,
+                        myTaste: user.tasteProfile,
+                      ),
+                    )),
                   )),
+              if (hasMore)
+                const Center(
+                    child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(color: kGold),
                 )),
-            if (hasMore)
-              const Center(
-                  child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: CircularProgressIndicator(color: kGold),
-              )),
-            if (!hasMore && display.isNotEmpty)
-              const Center(
-                  child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('すべて表示しました', style: TextStyle(fontSize: 10, color: Color(0xFF2a2018), letterSpacing: 2)),
-              )),
+              if (!hasMore && display.isNotEmpty)
+                const Center(
+                    child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text('すべて表示しました', style: TextStyle(fontSize: 10, color: Color(0xFF2a2018), letterSpacing: 2)),
+                )),
+              // ── フッター表示 ──────────────────────────────
+              if (postsState.isLoadingMore)
+                const Center(
+                    child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(color: kGold),
+                )),
+              if (!postsState.hasMore && display.isNotEmpty)
+                const Center(
+                    child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text('すべて表示しました', style: TextStyle(fontSize: 10, color: Color(0xFF2a2018), letterSpacing: 2)),
+                )),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
-  void _showNewPostSheet(BuildContext context, AppUser user, TasteProfile myTaste) {
+  void _showNewPostSheet(BuildContext context, AppUser user, TasteProfile myTaste, double myTrust) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -206,6 +228,7 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
         authorNick: user.nickname,
         authorUid: user.uid,
         authorTaste: myTaste,
+        authorTrust: myTrust,
         onSubmit: (post) async {
           await ref.read(postsProvider.notifier).addPost(post);
         },
@@ -386,7 +409,6 @@ class _PostCard extends StatelessWidget {
 
   double get _dist {
     final t = post.authorTaste;
-    if (t == null) return 999;
     final ds = t.sweet - myTaste.sweet,
         db = t.body - myTaste.body,
         da = t.aroma - myTaste.aroma,
@@ -461,7 +483,7 @@ class _PostCard extends StatelessWidget {
               ]),
               const SizedBox(height: 10),
               Wrap(spacing: 16, runSpacing: 6, children: [
-                _InfoChip('📅', post.date),
+                _InfoChip('📅', DateFormat('yyyy年M月d日').format(post.date.toDate())),
                 _InfoChip('📍', post.place),
                 _InfoChip('💴', post.budget),
                 _InfoChip('👥', '${post.intents.length}/${post.capacity}人'),
@@ -490,12 +512,14 @@ class _InfoChip extends StatelessWidget {
 class _NewPostSheet extends StatefulWidget {
   final String authorNick, authorUid;
   final TasteProfile authorTaste;
+  final double authorTrust;
   final Future<void> Function(NomikaiPost) onSubmit;
 
   const _NewPostSheet({
     required this.authorNick,
     required this.authorUid,
     required this.authorTaste,
+    required this.authorTrust,
     required this.onSubmit,
   });
 
@@ -544,7 +568,7 @@ class _NewPostSheetState extends State<_NewPostSheet> {
       final post = NomikaiPost(
         id: '',
         title: _titleCtrl.text.trim(),
-        date: _date!.toIso8601String(),
+        date: Timestamp.fromDate(_date!),
         place: _placeCtrl.text.trim(),
         genre: _genreCtrl.text.isEmpty ? null : _genreCtrl.text.trim(),
         budget: _budget!,
@@ -554,6 +578,9 @@ class _NewPostSheetState extends State<_NewPostSheet> {
         authorNick: widget.authorNick,
         authorUid: widget.authorUid,
         authorTaste: widget.authorTaste,
+        authorTrust: widget.authorTrust,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       );
       await widget.onSubmit(post);
       if (mounted) Navigator.of(context).pop();

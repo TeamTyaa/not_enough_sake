@@ -1,32 +1,37 @@
-// TODO: クラス名コメント修正
 // ============================================================
-// 飲み会投稿データモデル
+// 投稿ステータス定数
 // ============================================================
 
-enum PostStatus { open, confirmed, done, cancelled }
-
-PostStatus postStatusFromString(String s) {
-  switch (s) {
-    case 'confirmed':
-      return PostStatus.confirmed;
-    case 'done':
-      return PostStatus.done;
-    case 'cancelled':
-      return PostStatus.cancelled;
-    default:
-      return PostStatus.open;
-  }
+enum PostStatus {
+  open,
+  confirmed,
+  done,
+  cancelled,
 }
 
-String postStatusToString(PostStatus s) {
-  switch (s) {
+PostStatus? postStatusFromInt(int i) {
+  switch (i) {
+    case 0:
+      return PostStatus.open;
+    case 1:
+      return PostStatus.confirmed;
+    case 2:
+      return PostStatus.done;
+    case 9:
+      return PostStatus.cancelled;
+  }
+  return null;
+}
+
+int postStatusToInt(PostStatus e) {
+  switch (e) {
+    case PostStatus.open:
+      return 0;
     case PostStatus.confirmed:
-      return 'confirmed';
+      return 1;
     case PostStatus.done:
-      return 'done';
+      return 2;
     case PostStatus.cancelled:
-      return 'cancelled';
-    default:
-      return 'open';
+      return 9;
   }
 }

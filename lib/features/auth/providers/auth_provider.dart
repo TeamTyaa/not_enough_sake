@@ -1,7 +1,8 @@
 // ============================================================
-// 認証プロバイダー
+// 認証状態プロバイダ
 // ============================================================
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -125,25 +126,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final blocked = await _userRepository.getBlocked(uid);
     if (blocked != null) {
-      final birthday = DateTime.tryParse(blocked.birthday);
-      if (birthday != null) {
-        final turnsAdult = DateTime(birthday.year + 20, birthday.month, birthday.day);
-        if (DateTime.now().isBefore(turnsAdult)) {
-          state = state.copyWith(isLoading: false, blocked: blocked);
-          return;
-        }
+      if (blocked.isUnderAge) {
+        state = state.copyWith(isLoading: false, blocked: blocked);
+        return;
       }
     }
 
     final appUser = await _userRepository.getUser(uid) ??
         AppUser(
           uid: uid,
-          nickname: '',
+          nickname: firebaseUser.displayName ?? '',
           email: firebaseUser.email ?? '',
-          birthday: '',
+          birthday: Timestamp.now(),
           gender: '',
           genres: const [],
           tasteProfile: const TasteProfile(),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
         );
 
     state = state.copyWith(

@@ -2,23 +2,25 @@
 // 通報データモデル
 // ============================================================
 
-class ReportData {
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class Report {
   final String postId;
   final String authorNick;
   final String reporterUid;
   final String reporterNick;
   final String reason;
   final String detail;
-  final String reportedAt;
+  final Timestamp createdAt;
 
-  const ReportData({
+  const Report({
     required this.postId,
     required this.authorNick,
     required this.reporterUid,
     required this.reporterNick,
     required this.reason,
     required this.detail,
-    required this.reportedAt,
+    required this.createdAt,
   });
 
   Map<String, dynamic> toMap() => {
@@ -28,6 +30,6 @@ class ReportData {
         'reporterNick': reporterNick,
         'reason': reason,
         'detail': detail,
-        'reportedAt': reportedAt,
+        'createdAt': createdAt,
       };
 }

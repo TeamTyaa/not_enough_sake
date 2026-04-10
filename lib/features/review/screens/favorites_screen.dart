@@ -1,3 +1,7 @@
+// ══════════════════════════════════════════════════════════
+// お気に入り画面
+// ══════════════════════════════════════════════════════════
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

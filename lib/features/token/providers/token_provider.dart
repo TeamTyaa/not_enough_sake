@@ -2,14 +2,19 @@
 // トークンプロバイダー
 // ══════════════════════════════════════════════════════════
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/token_balance.dart';
+import '../models/token.dart';
 import '../repositories/token_repository.dart';
 
-class TokenNotifier extends StateNotifier<TokenBalance> {
+class TokenNotifier extends StateNotifier<Token> {
   final String uid;
-  TokenNotifier(this.uid) : super(const TokenBalance()) {
+  TokenNotifier(this.uid)
+      : super(Token(
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        )) {
     _load();
   }
 
@@ -54,6 +59,6 @@ class TokenNotifier extends StateNotifier<TokenBalance> {
   }
 }
 
-final tokenProvider = StateNotifierProvider.family<TokenNotifier, TokenBalance, String>(
+final tokenProvider = StateNotifierProvider.family<TokenNotifier, Token, String>(
   (_, uid) => TokenNotifier(uid),
 );

@@ -1,3 +1,8 @@
+// ══════════════════════════════════════════════════════════
+// レビュー画面
+// ══════════════════════════════════════════════════════════
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../utils/constants.dart';
@@ -8,13 +13,13 @@ import '../../../widgets/layout/nomigatari_app_bar.dart';
 import '../../../widgets/media/drink_image.dart';
 import '../../common/models/taste_profile.dart';
 import '../../recommend/models/recommended_drink.dart';
-import '../models/drink_review.dart';
+import '../models/review.dart';
 
 class ReviewScreen extends StatefulWidget {
   final RecommendedDrink drink;
   final String tierLabel;
   final String uid;
-  final Future<void> Function(DrinkReview) onSaved;
+  final Future<void> Function(Review) onSaved;
 
   const ReviewScreen({
     super.key,
@@ -49,16 +54,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _err = '';
     });
     try {
-      final review = DrinkReview(
-        id: '', // DB側で採番
+      final review = Review(
+        id: '',
         name: widget.drink.name,
         category: widget.drink.category,
         tier: widget.drink.priceKey,
         sliders: _sliders,
         text: _textCtrl.text.trim(),
         justRight: _justRight,
-        date: DateTime.now().toString().split(' ').first.replaceAll('-', '/'),
         officialUrl: widget.drink.officialUrl,
+        createdAt: Timestamp.now(),
       );
       await widget.onSaved(review);
       if (mounted) Navigator.of(context).pop();

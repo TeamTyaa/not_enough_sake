@@ -1,5 +1,10 @@
+// ══════════════════════════════════════════════════════════
+// レビュー履歴画面
+// ══════════════════════════════════════════════════════════
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/actions/purchase_links.dart';
@@ -7,18 +12,18 @@ import '../../../widgets/cards/category_tag.dart';
 import '../../../widgets/layout/nomigatari_app_bar.dart';
 import '../../../widgets/media/drink_image.dart';
 import '../../common/models/taste_profile.dart';
-import '../models/drink_review.dart';
+import '../models/review.dart';
 import '../providers/review_provider.dart';
 
-class HistoryScreen extends ConsumerStatefulWidget {
+class ReviewHistoryScreen extends ConsumerStatefulWidget {
   final String uid;
-  const HistoryScreen({super.key, required this.uid});
+  const ReviewHistoryScreen({super.key, required this.uid});
 
   @override
-  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+  ConsumerState<ReviewHistoryScreen> createState() => _ReviewHistoryScreenState();
 }
 
-class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+class _ReviewHistoryScreenState extends ConsumerState<ReviewHistoryScreen> {
   int _visibleCount = kPageSize;
   final _scrollCtrl = ScrollController();
 
@@ -67,17 +72,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ));
                 }
                 final h = visible[i];
-                return _HistoryCard(review: h, uid: widget.uid);
+                return _ReviewHistoryCard(review: h, uid: widget.uid);
               },
             ),
     );
   }
 }
 
-class _HistoryCard extends StatelessWidget {
-  final DrinkReview review;
+class _ReviewHistoryCard extends StatelessWidget {
+  final Review review;
   final String uid;
-  const _HistoryCard({required this.review, required this.uid});
+  const _ReviewHistoryCard({required this.review, required this.uid});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -95,7 +100,8 @@ class _HistoryCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text(review.name, style: const TextStyle(fontSize: 14, color: kGold)),
-                Text(review.date, style: const TextStyle(fontSize: 10, color: kDim)),
+                Text(DateFormat('yyyy年M月d日').format(review.createdAt.toDate()),
+                    style: const TextStyle(fontSize: 10, color: kDim)),
               ]),
               const SizedBox(height: 6),
               Wrap(spacing: 5, runSpacing: 4, children: [

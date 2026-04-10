@@ -1,13 +1,14 @@
-// ══════════════════════════════════════════════════════════
-// 好みタステプロバイダー（合成）
-// ══════════════════════════════════════════════════════════
+// ============================================================
+// 好みプロファイルプロバイダ
+// ============================================================
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../utils/constants.dart';
-import '../../review/models/drink_review.dart';
+import '../../review/models/review.dart';
 import '../models/taste_profile.dart';
 
-final myTasteProvider = Provider.family<TasteProfile, (TasteProfile, List<DrinkReview>)>(
+final myTasteProvider = Provider.family<TasteProfile, (TasteProfile, List<Review>)>(
   (_, args) {
     final base = args.$1;
     final reviews = args.$2;

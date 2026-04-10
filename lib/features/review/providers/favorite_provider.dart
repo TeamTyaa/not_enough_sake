@@ -4,10 +4,10 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/favorite_item.dart';
+import '../models/favorite.dart';
 import '../repositories/favorite_repository.dart';
 
-class FavoritesNotifier extends StateNotifier<List<FavoriteItem>> {
+class FavoritesNotifier extends StateNotifier<List<Favorite>> {
   final String uid;
   FavoritesNotifier(this.uid) : super([]) {
     _load();
@@ -25,7 +25,7 @@ class FavoritesNotifier extends StateNotifier<List<FavoriteItem>> {
     });
   }
 
-  Future<void> setFavorites(List<FavoriteItem> favs) async {
+  Future<void> setFavorites(List<Favorite> favs) async {
     await _favoriteRepository.setFavorites(uid, favs);
     state = favs;
   }
@@ -38,6 +38,6 @@ class FavoritesNotifier extends StateNotifier<List<FavoriteItem>> {
   }
 }
 
-final favoritesProvider = StateNotifierProvider.family<FavoritesNotifier, List<FavoriteItem>, String>(
+final favoritesProvider = StateNotifierProvider.family<FavoritesNotifier, List<Favorite>, String>(
   (_, uid) => FavoritesNotifier(uid),
 );

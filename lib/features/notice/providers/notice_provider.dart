@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════
-// お知らせプロバイダー
+// お知らせプロバイダ
 // ══════════════════════════════════════════════════════════
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,8 +14,7 @@ class NoticesState {
   const NoticesState({this.all = const [], this.readIds = const []});
 
   List<AppNotice> get active {
-    final today = DateTime.now();
-    return all.where((n) => n.isActive(today)).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return all.where((n) => n.isActive).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   List<AppNotice> get unread =>
