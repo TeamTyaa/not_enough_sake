@@ -2,6 +2,7 @@
 // AIサービス
 // ============================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'ai_provider.dart';
@@ -9,11 +10,27 @@ import 'gemini_provider.dart';
 // import 'openai_provider.dart'; // ChatGPTに切り替えるときはコメントイン
 
 class AiService {
-  static AiProvider get _provider => GeminiProvider(
-        apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-        // ChatGPTに切り替えるときはこう↓
-        // OpenAiProvider(apiKey: dotenv.env['OPENAI_API_KEY'] ?? '')
-      );
+  static AiProvider get _provider {
+    final key = dotenv.env['GEMINI_API_KEY'] ?? '';
+    assert(key.isNotEmpty, 'GEMINI_API_KEY が .env に設定されていません');
+    return GeminiProvider(
+      apiKey: key,
+      // ChatGPTに切り替えるときはこう↓
+      // OpenAiProvider(apiKey: dotenv.env['OPENAI_API_KEY'] ?? '')
+    );
+  }
+
+  static Future<String?> searchDrinkImage({
+    required String name,
+    required String category,
+  }) async {
+    try {
+      return await _provider.searchDrinkImage(name: name, category: category);
+    } catch (e) {
+      debugPrint('[AiService] searchDrinkImage failed: $e');
+      return null;
+    }
+  }
 
   // ── レコメンド（3本） ─────────────────────────────────
   static Future<Map<String, dynamic>?> fetchRecommendations({
@@ -26,7 +43,8 @@ class AiService {
         userMessage: userMessage,
         responseSchema: _recSchema,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AiService] fetchRecommendations failed: $e');
       return null;
     }
   }
@@ -42,7 +60,8 @@ class AiService {
         userMessage: userMessage,
         responseSchema: _extraSchema,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AiService] fetchExtraPickup failed: $e');
       return null;
     }
   }

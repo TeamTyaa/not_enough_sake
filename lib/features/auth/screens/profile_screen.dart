@@ -91,7 +91,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 updatedAt: Timestamp.now(),
               ),
             );
-        // TODO: setBlocked(blocked) の実装
+        await ref.read(authProvider.notifier).saveBlocked(blocked);
       } finally {
         if (mounted) setState(() => _loading = false);
       }

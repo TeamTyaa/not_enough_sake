@@ -20,14 +20,12 @@ class TokenNotifier extends StateNotifier<Token> {
 
   final _tokenRepository = TokenRepository();
 
-  void _load() {
-    Future(() async {
-      try {
-        state = await _tokenRepository.getTokens(uid);
-      } catch (e) {
-        // TODO: エラーハンドリング
-      }
-    });
+  Future<void> _load() async {
+    try {
+      state = await _tokenRepository.getTokens(uid);
+    } catch (_) {
+      // 取得失敗時は初期値（free:0, paid:0）のまま継続
+    }
   }
 
   Future<void> addFree(int amount) async {
@@ -37,18 +35,18 @@ class TokenNotifier extends StateNotifier<Token> {
   }
 
   Future<bool> spendFree(int amount) async {
-    if (state.free < amount) return false;
-    final next = state.copyWith(free: state.free - amount);
-    await _tokenRepository.setTokens(uid, next);
-    state = next;
+    // トランザクションで競合防止（TokenRepository.spendFree を使用）
+    final ok = await _tokenRepository.spendFree(uid, amount);
+    if (!ok) return false;
+    state = state.copyWith(free: state.free - amount);
     return true;
   }
 
   Future<bool> spendPaid(int amount) async {
-    if (state.paid < amount) return false;
-    final next = state.copyWith(paid: state.paid - amount);
-    await _tokenRepository.setTokens(uid, next);
-    state = next;
+    // トランザクションで競合防止（TokenRepository.spendPaid を使用）
+    final ok = await _tokenRepository.spendPaid(uid, amount);
+    if (!ok) return false;
+    state = state.copyWith(paid: state.paid - amount);
     return true;
   }
 

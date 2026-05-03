@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/constants.dart';
 import '../../../widgets/layout/nomigatari_app_bar.dart';
@@ -53,7 +54,10 @@ class NoticesScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(notice.body, style: const TextStyle(fontSize: 12, color: kDim, height: 1.75)),
                       const SizedBox(height: 10),
-                      Text('掲載期限: ${notice.endAt}', style: const TextStyle(fontSize: 9, color: Color(0xFF3a3028))),
+                      Text(
+                        '掲載期限: ${DateFormat('yyyy年M月d日').format(notice.endAt.toDate())}',
+                        style: const TextStyle(fontSize: 9, color: Color(0xFF3a3028)),
+                      ),
                     ]),
                   ),
                 );

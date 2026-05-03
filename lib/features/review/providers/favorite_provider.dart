@@ -15,14 +15,10 @@ class FavoritesNotifier extends StateNotifier<List<Favorite>> {
 
   final _favoriteRepository = FavoriteRepository();
 
-  void _load() {
-    Future(() async {
-      try {
-        state = await _favoriteRepository.getFavorites(uid);
-      } catch (e) {
-        // TODO: エラーハンドリング
-      }
-    });
+  Future<void> _load() async {
+    try {
+      state = await _favoriteRepository.getFavorites(uid);
+    } catch (_) {}
   }
 
   Future<void> setFavorites(List<Favorite> favs) async {
@@ -30,11 +26,17 @@ class FavoritesNotifier extends StateNotifier<List<Favorite>> {
     state = favs;
   }
 
-  void reorder(int oldIndex, int newIndex) {
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    final original = [...state];
     final list = [...state];
     final item = list.removeAt(oldIndex);
     list.insert(newIndex, item);
-    setFavorites(list);
+    state = list;
+    try {
+      await _favoriteRepository.setFavorites(uid, list);
+    } catch (_) {
+      state = original;
+    }
   }
 }
 

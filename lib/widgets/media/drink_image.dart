@@ -5,7 +5,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../services/api/image_api.dart';
+import '../../services/ai/ai_service.dart';
 import '../../utils/constants.dart';
 
 class DrinkImage extends StatefulWidget {
@@ -27,8 +27,10 @@ class DrinkImage extends StatefulWidget {
 }
 
 class _DrinkImageState extends State<DrinkImage> {
+  // ウィジェット間で共有するキャッシュ
+  static final Map<String, String> _urlCache = {};
+
   String? _imageUrl;
-  final bool _loaded = false;
 
   @override
   void initState() {
@@ -37,8 +39,22 @@ class _DrinkImageState extends State<DrinkImage> {
   }
 
   Future<void> _fetchImage() async {
-    final url = await ImageApi.fetchDrinkImage(widget.name, widget.category);
-    if (mounted && url != null) setState(() => _imageUrl = url);
+    final key = '${widget.name}:${widget.category}';
+
+    // キャッシュがあれば即反映
+    if (_urlCache.containsKey(key)) {
+      if (mounted) setState(() => _imageUrl = _urlCache[key]);
+      return;
+    }
+
+    final url = await AiService.searchDrinkImage(
+      name: widget.name,
+      category: widget.category,
+    );
+    if (url != null) {
+      _urlCache[key] = url;
+      if (mounted) setState(() => _imageUrl = url);
+    }
   }
 
   @override

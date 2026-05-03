@@ -54,12 +54,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
-  void _load() {
-    setState(() async {
-      _reviews = await _reviewRepository.getReviews(widget.uid);
-      _favs = await _favoriteRepository.getFavorites(widget.uid);
-      _loading = false;
-    });
+  Future<void> _load() async {
+    try {
+      final reviews = await _reviewRepository.getReviews(widget.uid);
+      final favs = await _favoriteRepository.getFavorites(widget.uid);
+      if (mounted) {
+        setState(() {
+          _reviews = reviews;
+          _favs = favs;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _err = '読み込みに失敗しました';
+          _loading = false;
+        });
+      }
+    }
   }
 
   @override

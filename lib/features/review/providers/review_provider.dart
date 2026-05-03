@@ -15,19 +15,16 @@ class ReviewsNotifier extends StateNotifier<List<Review>> {
 
   final _reviewRepository = ReviewRepository();
 
-  void _load() {
-    Future(() async {
-      try {
-        state = await _reviewRepository.getReviews(uid);
-      } catch (e) {
-        // TODO: エラーハンドリング
-      }
-    });
+  Future<void> _load() async {
+    try {
+      state = await _reviewRepository.getReviews(uid);
+    } catch (_) {}
   }
 
-  Future<void> addReview(Review r) async {
+  Future<String> addReview(Review r) async {
     final id = await _reviewRepository.addReview(uid, r);
     state = [Review.fromMap(id, r.toMap()), ...state];
+    return id;
   }
 }
 

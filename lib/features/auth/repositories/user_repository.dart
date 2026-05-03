@@ -5,6 +5,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../services/db_service.dart';
+
 import '../models/app_user.dart';
 import '../models/blocked_user.dart';
 
@@ -20,6 +21,22 @@ class UserRepository {
   }
 
   Future<void> deleteUser(String uid) async {
+    // 単一ドキュメントのサブコレクションを削除
+    await Future.wait([
+      DbService.doc('users/$uid/recs/current').delete(),
+      DbService.doc('users/$uid/favorites/list').delete(),
+      DbService.doc('users/$uid/tokens').delete(),
+    ]);
+    // 複数ドキュメントのサブコレクションをバッチ削除
+    for (final col in ['reviews', 'recsHistory']) {
+      final snap = await DbService.collection('users/$uid/$col').get();
+      if (snap.docs.isEmpty) continue;
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
     await DbService.doc('users/$uid').delete();
   }
 
@@ -32,5 +49,9 @@ class UserRepository {
     final snap = await DbService.doc('blockedUsers/$uid').get();
     if (!snap.exists) return null;
     return BlockedUser.fromMap(uid, snap.data()! as Map<String, dynamic>);
+  }
+
+  Future<void> setBlocked(BlockedUser blocked) async {
+    await DbService.doc('blockedUsers/${blocked.uid}').set(blocked.toMap());
   }
 }

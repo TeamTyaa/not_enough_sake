@@ -97,12 +97,13 @@ class NomikaiPost {
       };
 
   NomikaiPost copyWith({
+    String? id,
     PostStatus? status,
     List<IntentUser>? intents,
     List<NomikaiRating>? ratings,
   }) =>
       NomikaiPost(
-        id: id,
+        id: id ?? this.id,
         title: title,
         date: date,
         place: place,

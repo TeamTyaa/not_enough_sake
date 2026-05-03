@@ -50,7 +50,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
       _err = '';
     });
     try {
-      await ref.read(authProvider.notifier).updateUser(
+      await ref.read(authProvider.notifier).saveProfile(
             user.copyWith(nickname: _nickCtrl.text.trim(), genres: _genres),
           );
       setState(() => _saved = true);
@@ -132,9 +132,13 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                       onPressed: () async {
                         // TODO: Stripe決済実装
                         final messenger = ScaffoldMessenger.of(context);
-
-                        await ref.read(tokenProvider(user.uid).notifier).addPaid(plan.paid);
-                        messenger.showSnackBar(SnackBar(content: Text('${plan.desc}を購入しました！')));
+                        try {
+                          await ref.read(tokenProvider(user.uid).notifier).addPaid(plan.paid);
+                          messenger.showSnackBar(SnackBar(content: Text('${plan.desc}を購入しました！')));
+                        } catch (e) {
+                          debugPrint('[mypage] token purchase failed: $e');
+                          messenger.showSnackBar(const SnackBar(content: Text('購入処理に失敗しました')));
+                        }
                       },
                     ),
                   ]),
@@ -163,7 +167,17 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           // アクション
           _Card(
               child: Wrap(spacing: 12, runSpacing: 8, children: [
-            GoldButton(label: 'ログアウト', outline: true, onPressed: () => ref.read(authProvider.notifier).signOut()),
+            GoldButton(
+                label: 'ログアウト',
+                outline: true,
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    await ref.read(authProvider.notifier).signOut();
+                  } catch (_) {
+                    messenger.showSnackBar(const SnackBar(content: Text('ログアウトに失敗しました')));
+                  }
+                }),
             GoldButton(
                 label: 'アカウントを削除する', outline: true, danger: true, onPressed: () => setState(() => _modal = 'delete')),
           ])),

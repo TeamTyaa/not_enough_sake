@@ -41,7 +41,7 @@ class FavoritesScreen extends ConsumerWidget {
                   itemBuilder: (ctx, i) {
                     final fav = favs[i];
                     return Container(
-                      key: ValueKey(fav.id),
+                      key: ValueKey(fav.id.isNotEmpty ? fav.id : '${fav.name}_${fav.category}_$i'),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF0a0806),

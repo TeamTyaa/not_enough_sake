@@ -32,7 +32,7 @@ class BlockedUser {
 
   Map<String, dynamic> toMap() => {
         'uid': uid,
-        'isUnderage': isUnderAge,
+        'isUnderAge': isUnderAge,
         'isBanned': isBanned,
         'reason': reason,
         'createdAt': createdAt,

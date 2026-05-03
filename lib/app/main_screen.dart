@@ -11,6 +11,7 @@ import '../features/auth/screens/mypage_screen.dart';
 import '../features/notice/providers/notice_provider.dart';
 import '../features/notice/screens/notices_screen.dart';
 import '../features/post/screens/nomikai_board_screen.dart';
+import '../features/recommend/screens/recs_history_screen.dart';
 import '../features/recommend/screens/recommend_screen.dart';
 import '../features/review/providers/review_provider.dart';
 import '../features/review/screens/favorites_screen.dart';
@@ -241,6 +242,11 @@ class _AppDrawer extends ConsumerWidget {
               label: 'お知らせ',
               badge: unreadCount,
               onTap: () => onNavigate(const NoticesScreen()),
+            ),
+            _DrawerItem(
+              icon: '🍶',
+              label: 'おすすめ履歴',
+              onTap: () => onNavigate(const RecsHistoryScreen()),
             ),
             _DrawerItem(
               icon: '📋',

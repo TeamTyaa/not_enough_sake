@@ -48,12 +48,24 @@ class TokenRepository {
   }
 
   Future<bool> spendPaid(String uid, int amount) async {
-    final tokens = await getTokens(uid);
-    if (tokens.paid < amount) return false;
+    final ref = DbService.doc('users/$uid/tokens');
 
-    final next = tokens.copyWith(paid: tokens.paid - amount);
-    await setTokens(uid, next);
-    return true;
+    return await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final current = snap.exists
+          ? Token.fromMap(snap.data()! as Map<String, dynamic>)
+          : Token(
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            );
+
+      if (current.paid < amount) return false;
+
+      final next = current.copyWith(paid: current.paid - amount);
+      tx.set(ref, next.toMap());
+
+      return true;
+    });
   }
 
   Future<void> addFree(String uid, int amount) async {

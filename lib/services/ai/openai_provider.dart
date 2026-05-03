@@ -59,7 +59,57 @@ class OpenAiProvider implements AiProvider {
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final content = data['choices'][0]['message']['content'] as String;
+    final choices = data['choices'] as List?;
+    if (choices == null || choices.isEmpty) {
+      throw Exception('OpenAI API: no choices in response: ${res.body}');
+    }
+    final content = choices[0]['message']?['content'] as String?;
+    if (content == null || content.isEmpty) {
+      throw Exception('OpenAI API: empty content in response');
+    }
     return jsonDecode(content) as Map<String, dynamic>;
+  }
+
+  @override
+  Future<String?> searchDrinkImage({
+    required String name,
+    required String category,
+  }) async {
+    // gpt-4o-mini はウェブ検索不可のため、検索対応モデルを使用
+    const searchModel = 'gpt-4o-search-preview';
+    final url = Uri.parse('https://api.openai.com/v1/chat/completions');
+
+    try {
+      final res = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode({
+              'model': searchModel,
+              'max_tokens': 300,
+              'messages': [
+                {
+                  'role': 'user',
+                  'content': '$name ($category) の商品画像のURLを1つだけ教えてください。'
+                      '画像URLのみを回答してください。説明は不要です。',
+                }
+              ],
+              'temperature': 0.0,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode != 200) return null;
+
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final content = data['choices']?[0]?['message']?['content'] as String? ?? '';
+      final urlPattern = RegExp(r'https?://\S+\.(?:jpg|jpeg|png|webp|gif)');
+      return urlPattern.firstMatch(content.trim())?.group(0);
+    } catch (_) {
+      return null;
+    }
   }
 }

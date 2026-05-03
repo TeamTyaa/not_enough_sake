@@ -139,7 +139,6 @@ class _RootRouter extends ConsumerWidget {
   const _RootRouter();
 
   @override
-  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
 

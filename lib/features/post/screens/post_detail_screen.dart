@@ -67,7 +67,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     super.dispose();
   }
 
-  void _loadComments() async {
+  Future<void> _loadComments() async {
     final comments = await _postRepository.getComments(_post.id);
     if (mounted) {
       setState(() {
@@ -77,18 +77,12 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     }
   }
 
-  bool get _hasIntent => _post.intents.any((i) => i.nick == widget.myNick);
-  bool get _isAuthor => _post.authorNick == widget.myNick;
+  bool get _hasIntent => _post.intents.any((i) => i.uid == widget.myUid);
+  bool get _isAuthor => _post.authorUid == widget.myUid;
   bool get _isDone => _post.status == PostStatus.done;
-  bool get _alreadyRated => _post.ratings.any((r) => r.fromNick == widget.myNick);
+  bool get _alreadyRated => _post.ratings.any((r) => r.fromUid == widget.myUid);
   bool get _canRate => _isDone && (_isAuthor || _hasIntent) && !_alreadyRated;
 
-  static const statusColor = {
-    PostStatus.open: Color(0xFF7aaa6a),
-    PostStatus.confirmed: kGold,
-    PostStatus.done: kMuted,
-    PostStatus.cancelled: Color(0xFF8a4040),
-  };
   static const statusLabel = {
     PostStatus.open: '参加者募集中',
     PostStatus.confirmed: '開催決定！',
@@ -110,9 +104,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
         text: _commentCtrl.text.trim(),
         createdAt: Timestamp.now(),
       );
-      await _postRepository.addComment(_post.id, c);
+      final id = await _postRepository.addComment(_post.id, c);
       setState(() {
-        _comments = [..._comments, PostComment.fromMap(c.toMap())];
+        _comments = [..._comments, PostComment(id: id, nick: c.nick, uid: c.uid, text: c.text, createdAt: c.createdAt)];
         _commentCtrl.clear();
       });
     } catch (e) {
@@ -125,13 +119,15 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   Future<void> _addIntent() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final newIntents = [..._post.intents, IntentUser(uid: widget.myUid, nick: widget.myNick)];
+      final newIntent = IntentUser(uid: widget.myUid, nick: widget.myNick);
+      await _postRepository.addIntent(_post.id, newIntent, minAttendees: _post.minAttendees);
+      // ローカル状態を楽観的に更新（Firestore 書き込みは addIntent で済み）
+      final newIntents = [..._post.intents, newIntent];
       final newStatus = newIntents.length >= _post.minAttendees && _post.status == PostStatus.open
           ? PostStatus.confirmed
           : _post.status;
       final updated = _post.copyWith(intents: newIntents, status: newStatus);
-      await _postRepository.updatePost(updated);
-      ref.read(postsProvider.notifier).updatePost(updated);
+      ref.read(postsProvider.notifier).patchLocal(updated);
       setState(() => _post = updated);
     } catch (e) {
       messenger.showSnackBar(const SnackBar(content: Text('参加意志の登録に失敗しました')));
@@ -141,10 +137,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   Future<void> _cancelIntent() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
+      await _postRepository.removeIntent(_post.id, widget.myUid);
+      // ローカル状態を楽観的に更新（Firestore 書き込みは removeIntent で済み）
       final newIntents = _post.intents.where((i) => i.uid != widget.myUid).toList();
-      final updated = _post.copyWith(intents: newIntents);
-      await _postRepository.updatePost(updated);
-      ref.read(postsProvider.notifier).updatePost(updated);
+      final newStatus = (_post.status == PostStatus.confirmed && newIntents.length < _post.minAttendees)
+          ? PostStatus.open
+          : _post.status;
+      final updated = _post.copyWith(intents: newIntents, status: newStatus);
+      ref.read(postsProvider.notifier).patchLocal(updated);
       setState(() => _post = updated);
     } catch (e) {
       messenger.showSnackBar(const SnackBar(content: Text('キャンセルに失敗しました')));
@@ -152,8 +152,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   }
 
   void _navigateToUser(String nick, String? uid) {
+    if (uid == null || uid.isEmpty) return;
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => UserProfileScreen(nick: nick, uid: uid ?? nick),
+      builder: (_) => UserProfileScreen(nick: nick, uid: uid),
     ));
   }
 
@@ -357,19 +358,20 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 onPressed: stars > 0 && commentCtrl.text.isNotEmpty
                     ? () async {
                         final rating = NomikaiRating(
-                          postId: '',
+                          postId: _post.id,
                           fromNick: widget.myNick,
                           fromUid: widget.myUid,
-                          toUid: _isAuthor ? '参加者' : _post.authorUid,
-                          toNick: _isAuthor ? '参加者' : _post.authorNick,
+                          toUid: _isAuthor ? '' : _post.authorUid,
+                          toNick: _isAuthor ? '参加者全員' : _post.authorNick,
                           role: _isAuthor ? 'host' : 'guest',
                           stars: stars,
                           comment: commentCtrl.text.trim(),
                           createdAt: Timestamp.now(),
                         );
+                        await _postRepository.addRating(_post.id, rating);
+                        // ローカル状態を楽観的に更新（Firestore 書き込みは addRating で済み）
                         final updated = _post.copyWith(ratings: [..._post.ratings, rating]);
-                        await _postRepository.updatePost(updated);
-                        ref.read(postsProvider.notifier).updatePost(updated);
+                        ref.read(postsProvider.notifier).patchLocal(updated);
                         setState(() => _post = updated);
                         if (ctx.mounted) Navigator.of(ctx).pop();
                       }
@@ -386,7 +388,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           ]),
         ),
       ),
-    );
+    ).whenComplete(commentCtrl.dispose);
   }
 
   void _showReportSheet() {
@@ -433,18 +435,21 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 onPressed: reason != null
                     ? () async {
                         final messenger = ScaffoldMessenger.of(context);
-
-                        await _reportRepository.addReport(Report(
-                          postId: _post.id,
-                          authorNick: _post.authorNick,
-                          reporterUid: widget.myUid,
-                          reporterNick: widget.myNick,
-                          reason: reason!,
-                          detail: detailCtrl.text,
-                          createdAt: Timestamp.now(),
-                        ));
-                        if (ctx.mounted) Navigator.of(ctx).pop();
-                        messenger.showSnackBar(const SnackBar(content: Text('通報を受け付けました')));
+                        try {
+                          await _reportRepository.addReport(Report(
+                            postId: _post.id,
+                            authorNick: _post.authorNick,
+                            reporterUid: widget.myUid,
+                            reporterNick: widget.myNick,
+                            reason: reason!,
+                            detail: detailCtrl.text,
+                            createdAt: Timestamp.now(),
+                          ));
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          messenger.showSnackBar(const SnackBar(content: Text('通報を受け付けました')));
+                        } catch (_) {
+                          messenger.showSnackBar(const SnackBar(content: Text('通報の送信に失敗しました')));
+                        }
                       }
                     : null,
               )),
@@ -459,7 +464,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           ]),
         ),
       ),
-    );
+    ).whenComplete(detailCtrl.dispose);
   }
 }
 

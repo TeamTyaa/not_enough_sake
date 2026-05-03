@@ -12,4 +12,11 @@ abstract class AiProvider {
     required Map<String, dynamic> responseSchema,
     int maxTokens = 1200,
   });
+
+  /// お酒の画像URLを検索して返す
+  /// 見つからない場合は null を返す
+  Future<String?> searchDrinkImage({
+    required String name,
+    required String category,
+  });
 }

@@ -31,16 +31,12 @@ class NoticesNotifier extends StateNotifier<NoticesState> {
 
   final _noticeRepository = NoticeRepository();
 
-  void _load() {
-    Future(() async {
-      try {
-        final notices = await _noticeRepository.getNotices();
-        final readIds = await _noticeRepository.getReadIds();
-        state = NoticesState(all: notices, readIds: readIds);
-      } catch (e) {
-        // TODO: エラーハンドリング
-      }
-    });
+  Future<void> _load() async {
+    try {
+      final notices = await _noticeRepository.getNotices();
+      final readIds = await _noticeRepository.getReadIds();
+      state = NoticesState(all: notices, readIds: readIds);
+    } catch (_) {}
   }
 
   Future<void> markRead(String id) async {

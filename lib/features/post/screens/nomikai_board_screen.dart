@@ -2,8 +2,6 @@
 // 飲み会掲示板画面
 // ============================================================
 
-import 'dart:math' show sqrt;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +32,6 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
   String _filterCity = '';
   String _filterMinCap = '';
   String _filterMaxCap = '';
-  int _visibleCount = kPageSize;
   final _scrollCtrl = ScrollController();
 
   @override
@@ -53,22 +50,11 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
     super.dispose();
   }
 
-  double _dist(NomikaiPost post, TasteProfile myTaste) {
-    final t = post.authorTaste;
-    final ds = t.sweet - myTaste.sweet,
-        db = t.body - myTaste.body,
-        da = t.aroma - myTaste.aroma,
-        df = t.finish - myTaste.finish,
-        dk = t.kick - myTaste.kick;
-    return sqrt((ds * ds + db * db + da * da + df * df + dk * dk).toDouble());
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user!;
     final reviews = ref.watch(reviewsProvider(user.uid));
     final tasteReady = reviews.length >= kReviewThreshold;
-    final posts = ref.watch(postsProvider);
     final postsState = ref.watch(postsProvider);
 
     if (!tasteReady) {
@@ -79,7 +65,8 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
     }
 
     // ソート・フィルター
-    var display = postsState.posts.where((p) => _dist(p, user.tasteProfile) <= kSimilarityThreshold).toList();
+    var display =
+        postsState.posts.where((p) => p.authorTaste.distanceTo(user.tasteProfile) <= kSimilarityThreshold).toList();
 
     if (_filterCity.isNotEmpty) {
       display = display.where((p) => p.place.contains(_filterCity)).toList();
@@ -99,11 +86,9 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
       case 'deadline':
         display.sort((a, b) => a.date.compareTo(b.date));
       default:
-        display.sort((a, b) => _dist(a, user.tasteProfile).compareTo(_dist(b, user.tasteProfile)));
+        display.sort((a, b) =>
+            a.authorTaste.distanceTo(user.tasteProfile).compareTo(b.authorTaste.distanceTo(user.tasteProfile)));
     }
-
-    final visible = display.take(_visibleCount).toList();
-    final hasMore = _visibleCount < display.length;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -131,7 +116,6 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
                         selected: _sort == opt.key,
                         onTap: () => setState(() {
                           _sort = opt.key;
-                          _visibleCount = kPageSize;
                         }),
                       ))
                   .toList(),
@@ -143,36 +127,26 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
               city: _filterCity,
               minCap: _filterMinCap,
               maxCap: _filterMaxCap,
-              onCityChanged: (v) => setState(() {
-                _filterCity = v;
-                _visibleCount = kPageSize;
-              }),
-              onMinCapChanged: (v) => setState(() {
-                _filterMinCap = v;
-                _visibleCount = kPageSize;
-              }),
-              onMaxCapChanged: (v) => setState(() {
-                _filterMaxCap = v;
-                _visibleCount = kPageSize;
-              }),
-              onClear: () => setState(() {
-                _filterCity = _filterMinCap = _filterMaxCap = '';
-                _visibleCount = kPageSize;
-              }),
+              onCityChanged: (v) => setState(() => _filterCity = v),
+              onMinCapChanged: (v) => setState(() => _filterMinCap = v),
+              onMaxCapChanged: (v) => setState(() => _filterMaxCap = v),
+              onClear: () => setState(() => _filterCity = _filterMinCap = _filterMaxCap = ''),
             ),
             const SizedBox(height: 8),
 
+            // フィルター・ソートはロード済みのページ内のみ有効
+            // （Firestoreのページネーション中は未取得分には適用されない）
             Text('${display.length}件', style: const TextStyle(fontSize: 11, color: kDim)),
             const SizedBox(height: 12),
 
-            if (visible.isEmpty)
+            if (display.isEmpty)
               const Center(
                   child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
                 child: Text('条件に一致する飲み会が見つかりません。', style: TextStyle(fontSize: 13, color: kDim)),
               ))
             else ...[
-              ...visible.map((post) => _PostCard(
+              ...display.map((post) => _PostCard(
                     post: post,
                     myTaste: user.tasteProfile,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -184,19 +158,6 @@ class _NomikaiBoard extends ConsumerState<NomikaiBoard> {
                       ),
                     )),
                   )),
-              if (hasMore)
-                const Center(
-                    child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: CircularProgressIndicator(color: kGold),
-                )),
-              if (!hasMore && display.isNotEmpty)
-                const Center(
-                    child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('すべて表示しました', style: TextStyle(fontSize: 10, color: Color(0xFF2a2018), letterSpacing: 2)),
-                )),
-              // ── フッター表示 ──────────────────────────────
               if (postsState.isLoadingMore)
                 const Center(
                     child: Padding(
@@ -406,16 +367,6 @@ class _PostCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _PostCard({required this.post, required this.myTaste, required this.onTap});
-
-  double get _dist {
-    final t = post.authorTaste;
-    final ds = t.sweet - myTaste.sweet,
-        db = t.body - myTaste.body,
-        da = t.aroma - myTaste.aroma,
-        df = t.finish - myTaste.finish,
-        dk = t.kick - myTaste.kick;
-    return sqrt((ds * ds + db * db + da * da + df * df + dk * dk).toDouble());
-  }
 
   static const statusColor = {
     PostStatus.open: Color(0xFF7aaa6a),

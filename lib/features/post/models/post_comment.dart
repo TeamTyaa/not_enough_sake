@@ -19,8 +19,8 @@ class PostComment {
     required this.createdAt,
   });
 
-  factory PostComment.fromMap(Map<String, dynamic> m) => PostComment(
-        id: m['id'] ?? '',
+  factory PostComment.fromMap(String id, Map<String, dynamic> m) => PostComment(
+        id: id,
         nick: m['nick'] ?? '',
         uid: m['uid'] ?? '',
         text: m['text'] ?? '',

@@ -126,7 +126,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final blocked = await _userRepository.getBlocked(uid);
     if (blocked != null) {
-      if (blocked.isUnderAge) {
+      if (blocked.isUnderAge || blocked.isBanned) {
         state = state.copyWith(isLoading: false, blocked: blocked);
         return;
       }
@@ -159,9 +159,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(user: user);
   }
 
-  Future<void> updateUser(AppUser user) async {
-    await _userRepository.setUser(user);
-    state = state.copyWith(user: user);
+  // ── ブロック情報保存 ──────────────────────────────────
+  Future<void> saveBlocked(BlockedUser blocked) async {
+    await _userRepository.setBlocked(blocked);
+    state = state.copyWith(blocked: blocked);
   }
 
   // ── サインアウト ──────────────────────────────────────

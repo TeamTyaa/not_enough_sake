@@ -25,13 +25,15 @@ class RecommendController {
 
   // ── 初回ロード ─────────────────────────
   void initIfNeeded(RecsState recs, List<Review> reviews) {
-    if (!recs.isLoading && recs.recs == null && recs.error == null) {
+    if (!recs.isLoading && recs.recs == null && recs.error == null && recs.canFetch) {
       ref.read(recsProvider((user.uid, user.genres)).notifier).fetchRecs(user.tasteProfile, reviews);
     }
   }
 
   // ── リフレッシュ ───────────────────────
   Future<void> refresh(List<Review> reviews) async {
+    final recs = ref.read(recsProvider((user.uid, user.genres)));
+    if (!recs.canFetch) return;
     await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchRecs(user.tasteProfile, reviews);
   }
 
@@ -48,44 +50,43 @@ class RecommendController {
           drink: drink,
           tierLabel: tier.label,
           uid: user.uid,
-          onSaved: (r) async {
-            await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
-            await ref.read(tokenProvider(user.uid).notifier).addFree(1);
-
-            // お気に入り追加
-            if (r.justRight) {
-              final favs = ref.read(favoritesProvider(user.uid));
-              if (!favs.any((f) => f.name == drink.name)) {
-                await ref.read(favoritesProvider(user.uid).notifier).setFavorites([
-                  ...favs,
-                  Favorite(
-                    id: r.id,
-                    name: drink.name,
-                    category: drink.category,
-                    createdAt: Timestamp.now(),
-                  )
-                ]);
-              }
-            }
-
-            // 完了フラグ
-            ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(tier.key);
-
-            final updatedReviews = ref.read(reviewsProvider(user.uid));
-
-            final recState = ref.read(recsProvider((user.uid, user.genres)));
-
-            final allDone = recState.done.length >= 3;
-
-            if (allDone) {
-              await ref
-                  .read(recsProvider((user.uid, user.genres)).notifier)
-                  .fetchRecs(user.tasteProfile, updatedReviews);
-            }
-          },
+          onSaved: (r) => _handleReviewSaved(r, drink, tier.key),
         ),
       ),
     );
+  }
+
+  Future<void> _handleReviewSaved(
+    Review r,
+    RecommendedDrink drink,
+    String tierKey,
+  ) async {
+    final id = await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
+    await ref.read(tokenProvider(user.uid).notifier).addFree(1);
+
+    if (r.justRight) {
+      final favs = ref.read(favoritesProvider(user.uid));
+      if (!favs.any((f) => f.name == drink.name && f.category == drink.category)) {
+        await ref.read(favoritesProvider(user.uid).notifier).setFavorites([
+          ...favs,
+          Favorite(
+            id: id,
+            name: drink.name,
+            category: drink.category,
+            createdAt: Timestamp.now(),
+          ),
+        ]);
+      }
+    }
+
+    ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(tierKey);
+
+    final updatedReviews = ref.read(reviewsProvider(user.uid));
+    final recState = ref.read(recsProvider((user.uid, user.genres)));
+    final allDone = kPriceTiers.every((t) => recState.done[t.key] == true);
+    if (allDone && recState.canFetch) {
+      await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchRecs(user.tasteProfile, updatedReviews);
+    }
   }
 
   // ── 追加レビュー ───────────────────────
@@ -100,15 +101,16 @@ class RecommendController {
           drink: drink,
           tierLabel: '追加ピックアップ',
           uid: user.uid,
-          onSaved: (r) async {
-            await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
-            await ref.read(tokenProvider(user.uid).notifier).addFree(1);
-
-            ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(extraKey);
-          },
+          onSaved: (r) => _handleExtraReviewSaved(r, extraKey),
         ),
       ),
     );
+  }
+
+  Future<void> _handleExtraReviewSaved(Review r, String extraKey) async {
+    await ref.read(reviewsProvider(user.uid).notifier).addReview(r);
+    await ref.read(tokenProvider(user.uid).notifier).addFree(1);
+    ref.read(recsProvider((user.uid, user.genres)).notifier).markDone(extraKey);
   }
 
   // ── ピックアップ ───────────────────────
@@ -129,11 +131,20 @@ class RecommendController {
       return;
     }
 
-    await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchExtraPickup(
+    final success = await ref.read(recsProvider((user.uid, user.genres)).notifier).fetchExtraPickup(
           tier: tier,
           taste: user.tasteProfile,
           history: reviews,
           genres: user.genres,
         );
+
+    // API失敗時はトークンを返金する
+    if (!success) {
+      if (useType == 'free') {
+        await ref.read(tokenProvider(user.uid).notifier).addFree(10);
+      } else {
+        await ref.read(tokenProvider(user.uid).notifier).addPaid(1);
+      }
+    }
   }
 }

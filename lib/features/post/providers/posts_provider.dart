@@ -100,13 +100,22 @@ class PostsNotifier extends StateNotifier<PostsState> {
     final id = await _repo.addPost(post);
     // 先頭に追加（最新順）
     state = state.copyWith(
-      posts: [NomikaiPost.fromMap(id, post.toMap()), ...state.posts],
+      posts: [post.copyWith(id: id), ...state.posts],
     );
   }
 
-  // ── 投稿更新 ──────────────────────────────────────────
+  // ── 投稿更新（Firestore + ローカル） ─────────────────
   Future<void> updatePost(NomikaiPost post) async {
     await _repo.updatePost(post);
+    state = state.copyWith(
+      posts: state.posts.map((p) => p.id == post.id ? post : p).toList(),
+    );
+  }
+
+  // ── ローカル状態のみ更新（Firestore への書き込みなし） ─
+  // intent / rating 操作はリポジトリ側で書き込み済みのため、
+  // 画面の楽観的更新にはこちらを使うこと（二重書き込み防止）
+  void patchLocal(NomikaiPost post) {
     state = state.copyWith(
       posts: state.posts.map((p) => p.id == post.id ? post : p).toList(),
     );
